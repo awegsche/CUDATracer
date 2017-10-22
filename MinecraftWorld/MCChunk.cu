@@ -196,7 +196,7 @@ __device__ bool hit_mcchunk(chunk_struct *chunk, Ray &ray, float& tmin, ShadeRec
 			t_before = tz_min_pp;
 
 		}
-		if (block_ptr && blockhit(ray, sr, blocks, block_ptr, tmin)) {
+		if (block_ptr && blockhit(ray, sr, blocks, block_ptr, t_before)) {
 			tmin = t_before;
 
 
@@ -224,7 +224,7 @@ __device__ bool hit_mcchunk(chunk_struct *chunk, Ray &ray, float& tmin, ShadeRec
 			uint block_ptr = chunk->blocks[ix + CHUNKSIZE * iy + CHUNKSTRIDE * iz];
 			float3 block_p0 = make_float3(x0 + CHUNKSIZE * BLOCKLENGTH, y0 + CHUNKSIZE * BLOCKLENGTH, z0 + CHUNKSIZE * BLOCKLENGTH);
 
-			if (block_ptr && blockhit(ray, sr, blocks, block_ptr, tmin)/* && tmin < tx_next*/) {
+			if (block_ptr && blockhit(ray, sr, blocks, block_ptr, t_before)/* && tmin < tx_next*/) {
 				tmin = t_before;
 				return true;
 			}
@@ -244,7 +244,7 @@ __device__ bool hit_mcchunk(chunk_struct *chunk, Ray &ray, float& tmin, ShadeRec
 				uint block_ptr = chunk->blocks[ix + CHUNKSIZE * iy + CHUNKSTRIDE * iz];
 				float3 block_p0 = make_float3(x0 + CHUNKSIZE * BLOCKLENGTH, y0 + CHUNKSIZE * BLOCKLENGTH, z0 + CHUNKSIZE * BLOCKLENGTH);
 
-				if (block_ptr&& blockhit(ray, sr, blocks, block_ptr, tmin)/* && tmin < ty_next*/) {
+				if (block_ptr&& blockhit(ray, sr, blocks, block_ptr, t_before)/* && tmin < ty_next*/) {
 					//material_ptr = object_ptr->get_material();
 					tmin  = t_before;
 					
@@ -266,7 +266,7 @@ __device__ bool hit_mcchunk(chunk_struct *chunk, Ray &ray, float& tmin, ShadeRec
 				uint block_ptr = chunk->blocks[ix + CHUNKSIZE * iy + CHUNKSTRIDE * iz];
 				float3 block_p0 = make_float3(x0 + CHUNKSIZE * BLOCKLENGTH, y0 + CHUNKSIZE * BLOCKLENGTH, z0 + CHUNKSIZE * BLOCKLENGTH);
 
-				if (block_ptr && blockhit(ray, sr, blocks, block_ptr, tmin) /*&& tmin < tz_next*/) {
+				if (block_ptr && blockhit(ray, sr, blocks, block_ptr, t_before) /*&& tmin < tz_next*/) {
 					tmin  = t_before;
 					
 					

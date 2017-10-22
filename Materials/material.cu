@@ -8,7 +8,7 @@ __device__ float4 get_color(float4* texels, texture_pos* positions, uint2* dimen
 {
 	uint2 dim = dimensions[pos];
 
-	texture_pos index = positions[pos] + (int)(u * dim.x) + (int)(v * dim.y * dim.x);
+	texture_pos index = positions[pos] + (int)(u * (float)dim.x) + (int)(v * (float)dim.y * (float)dim.x);
 	return texels[index];
 }
 

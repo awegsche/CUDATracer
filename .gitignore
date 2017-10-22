@@ -1,0 +1,22 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/x64
+/Qt5Guid.dll
+/Qt5Cored.dll
+/Qt5Core.dll
+/Mandelbrot_vs2017.vcxproj.user
+/Mandelbrot_vs2017.vcxproj.filters
+/Mandelbrot_vs2017.vcxproj.andreas.nvuser
+/Mandelbrot_vs2010.sln
+/Mandelbrot_kernel.h
+/Mandelbrot_kernel.cuh
+/Mandelbrot_gold.h
+/Mandelbrot_gold.cpp
+/Mandelbrot_cuda.cu
+/vc140.pdb
+/glew64.dll
+/freeglut.dll
+/CUDATracer.vcxproj.user

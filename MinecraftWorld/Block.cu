@@ -62,5 +62,5 @@ __device__ bool blockhit(Ray ray, ShadeRec &sr, block_struct *blocks, uint block
 		return true;
 	}
 
-
+	return false;
 }

@@ -25,6 +25,7 @@ __device__ float4 trace_ray(
 		cells, sr, world->blocks)
 		) 
 	{
+		//return rgbcolor(sr.hitPoint.x , sr.hitPoint.y, sr.hitPoint.z );
 		return shade(sr, world->materials, world->texels, world->positions, world->dimensions);// -rgbcolor(t / 1000.f, 0.f, 0.f);
 		return rgbcolor(1, 0, 0);
 	}

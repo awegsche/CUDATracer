@@ -46,21 +46,20 @@ public:
 	~BlockInfo();
 };
 
-inline block_struct _make_block(material_pos p, int ht) {
-	block_struct ret;
-	ret.material_top = p;
-	ret.material_side = p;
-	ret.material_bottom = p;
-	ret.hittype = ht;
-	return ret;
+inline void _make_block(block_struct &bl, material_pos p, int ht) {
+	
+	bl.material_top = p;
+	bl.material_side = p;
+	bl.material_bottom = p;
+	bl.hittype = ht;
+
 }
 
-inline block_struct _make_block(material_pos p_top, material_pos p_side, int ht) {
-	block_struct ret;
-	ret.material_top = p_top;
-	ret.material_side = p_side;
-	ret.material_bottom = p_top;
-	ret.hittype = ht;
-	return ret;
-}
+inline void _make_block(block_struct &bl, material_pos p_top, material_pos p_side, int ht) {
 
+	bl.material_top = p_top;
+	bl.material_side = p_side;
+	bl.material_bottom = p_top;
+	bl.hittype = ht;
+	
+}

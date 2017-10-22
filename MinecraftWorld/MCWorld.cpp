@@ -56,32 +56,39 @@ MCWorld::MCWorld()
 	MaterialManager *m = new MaterialManager();
 
 	for (int i = 1; i < 256; i++)
-		device_world->blocks[i] = _make_block(m->create_matte(1.0, 1.0, m->create_constantcolor(1.0, 0.0, 1.0)), SOLIDBLOCK);
-	device_world->blocks[0] = _make_block(0, INVALID); // air 
+		_make_block(device_world->blocks[i],
+			m->create_matte(1.0, 1.0, m->create_constantcolor(1.0, 0.0, 1.0)), SOLIDBLOCK);
+	_make_block(device_world->blocks[0], 0, INVALID); // air 
 
-	device_world->blocks[BlockInfo::GrassSide] = _make_block(
+	_make_block(
+		device_world->blocks[BlockInfo::GrassSide],
 		m->create_matte(.4f, .4f, m->load_texture(texturepath + "grass_top.png")),
 		m->create_matte(.4f, .4f, m->load_texture(texturepath + "grass_side.png")),
 		SOLIDBLOCK
 	);
 
-	device_world->blocks[BlockInfo::LeavesOak] = _make_block(
+	_make_block(
+		device_world->blocks[BlockInfo::LeavesOak],
 		m->create_matte(.4f, .4f, m->load_texture(texturepath + "leaves_oak.png")),
 		SOLIDBLOCK
 	);
-	device_world->blocks[BlockInfo::Stone] = _make_block(
+	_make_block(
+		device_world->blocks[BlockInfo::Stone],
 		m->create_matte(.4f, .4f, m->load_texture(texturepath + "stone.png")),
 		SOLIDBLOCK
 	);
-	device_world->blocks[BlockInfo::CobbleStone] = _make_block(
+	_make_block(
+		device_world->blocks[BlockInfo::CobbleStone],
 		m->create_matte(.4f, .4f, m->load_texture(texturepath + "cobblestone.png")),
 		SOLIDBLOCK
 	);
-	device_world->blocks[BlockInfo::OakWoodPlank] = _make_block(
+	_make_block(
+		device_world->blocks[BlockInfo::OakWoodPlank], 
 		m->create_matte(.4f, .4f, m->load_texture(texturepath + "planks_oak.png")),
 		SOLIDBLOCK
 	);
-	device_world->blocks[BlockInfo::WaterStill] = _make_block(
+	_make_block(
+		device_world->blocks[BlockInfo::WaterStill],
 		m->create_matte(.4f, .4f, m->load_texture(texturepath + "water_still.png")),
 		SOLIDBLOCK
 	);
