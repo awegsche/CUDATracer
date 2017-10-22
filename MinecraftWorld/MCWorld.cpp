@@ -9,6 +9,7 @@
 #include <cuda_runtime.h>
 
 #include "Materials/Materialmanager.h"
+#include "Materials/RGBColors.h"
 
 
 #if !defined WIN64 && !defined WIN32
@@ -101,6 +102,11 @@ MCWorld::MCWorld()
 	device_world->materials = m->materials;
 	device_world->positions = m->positions;
 	device_world->dimensions = m->dimensions;
+
+	// Setup light
+	device_world->light_dir = make_float3(1.0, 1.0, 1.0);
+	device_world->light_col = rgbcolor(1.0, 1.0, 1.0);
+	device_world->light_intensity = 2.0;
 	
 }
 

@@ -5,7 +5,7 @@
 
 
 MaterialManager::MaterialManager()
-	: texels(nullptr), positions(nullptr), dimensions(nullptr), size(0), current_texture(0)
+	: texels(nullptr), positions(nullptr), dimensions(nullptr), current_texture(0)
 {
 }
 
@@ -20,8 +20,9 @@ texture_pos MaterialManager::load_texture(const QString & filename, int sprite_w
 	uint2 dims;
 	dims.x = 1;
 	dims.y = 1;
-	host_positions.push_back(size);
-	texture_pos old_size = size;
+	
+	host_positions.push_back(host_texels.size());
+	
 
 	if (i.load(filename, "png")) {
 
@@ -45,8 +46,9 @@ texture_pos MaterialManager::load_texture(const QString & filename, int sprite_w
 		host_texels.push_back(rgbcolor(1.0f, .0f, 1.f));
 	}
 
+
 	host_dims.push_back(dims);
-	size += dims.x * dims.y;
+	
 	current_texture++;
 	return current_texture - 1;
 }
@@ -58,9 +60,9 @@ texture_pos MaterialManager::create_constantcolor(const float r, const float g, 
 	dims.x = 1;
 	dims.y = 1;
 	host_dims.push_back(dims);
-	auto old_size = size;
-	host_positions.push_back(size);
-	size += 1;
+	
+	host_positions.push_back(host_texels.size());
+	
 
 	current_texture++;
 	return current_texture - 1;
@@ -90,8 +92,8 @@ void MaterialManager::copy_to_device_memory()
 		cudaFree(materials);
 	}
 
-	int pos_size = sizeof(int) * host_positions.size();
-	int dims_size = sizeof(uint2) *  host_positions.size();
+	int pos_size = sizeof(unsigned int) * host_positions.size();
+	int dims_size = sizeof(uint2) *  host_dims.size();
 	int materials_size = sizeof(material_params) * host_materials.size();
 
 	cudaMalloc(&texels, sizeof(float4) * host_texels.size());

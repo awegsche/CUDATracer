@@ -244,7 +244,7 @@ __device__ bool hit_mcchunk(chunk_struct *chunk, Ray &ray, float& tmin, ShadeRec
 				uint block_ptr = chunk->blocks[ix + CHUNKSIZE * iy + CHUNKSTRIDE * iz];
 				float3 block_p0 = make_float3(x0 + CHUNKSIZE * BLOCKLENGTH, y0 + CHUNKSIZE * BLOCKLENGTH, z0 + CHUNKSIZE * BLOCKLENGTH);
 
-				if (block_ptr&& blockhit(ray, sr, blocks, block_ptr, t_before)/* && tmin < ty_next*/) {
+				if (block_ptr && blockhit(ray, sr, blocks, block_ptr, t_before)/* && tmin < ty_next*/) {
 					//material_ptr = object_ptr->get_material();
 					tmin  = t_before;
 					

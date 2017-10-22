@@ -31,6 +31,7 @@ __host__ __device__  inline float3 _make_float3(const float x, const float y, co
 	return f;
 }
 
+// multiplication with scalar
 __host__ __device__ inline float3 operator*(const float a, const float3 &v) {
 	float3 u;
 	u.x = v.x * a;
@@ -39,6 +40,7 @@ __host__ __device__ inline float3 operator*(const float a, const float3 &v) {
 	return u;
 }
 
+// multiplication with scalar
 __host__ __device__ inline float3 operator*(const float3 &v, const float a) {
 	float3 u;
 	u.x = v.x * a;
@@ -47,6 +49,7 @@ __host__ __device__ inline float3 operator*(const float3 &v, const float a) {
 	return u;
 }
 
+// addition
 __host__ __device__ inline float3 operator+(const float3 &u, const float3 &v) {
 	float3 w;
 	w.x = v.x + u.x;
@@ -55,6 +58,12 @@ __host__ __device__ inline float3 operator+(const float3 &u, const float3 &v) {
 	return w;
 }
 
+// dot product
+__host__ __device__ inline float operator*(const float3 &v, const float3 &u) {
+	return v.x * u.x + v.y * u.y + v.z * u.z;
+}
+
+// cross product
 __host__ __device__ inline float3 operator^(const float3 &u, const float3 &v) {
 	float3 w;
 	w.x = u.y * v.z - u.z * v.y;
@@ -70,6 +79,14 @@ __host__ __device__ inline float3 operator-(const float3 &v, const float3 &u) {
 	w.y = v.y - u.y;
 	w.z = v.z - u.z;
 	return w;
+}
+
+__host__ __device__ inline float3 operator-(const float3 &rhs) {
+	float3 ret;
+	ret.x = rhs.x;
+	ret.y = rhs.y;
+	ret.z = rhs.z;
+	return ret;
 }
 
 __host__ __device__ inline float4 &operator+=(float4 &u, const float4 &v) {

@@ -26,10 +26,10 @@ __device__ float4 trace_ray(
 		) 
 	{
 		//return rgbcolor(sr.hitPoint.x , sr.hitPoint.y, sr.hitPoint.z );
-		return shade(sr, world->materials, world->texels, world->positions, world->dimensions);// -rgbcolor(t / 1000.f, 0.f, 0.f);
+		return shade(sr, world);// -rgbcolor(t / 1000.f, 0.f, 0.f);
 		return rgbcolor(1, 0, 0);
 	}
-	return rgbcolor(ray.d.x, ray.d.y, ray.d.z);
+	return rgbcolor(.7f, .8f, 1.0f);
 }
 
 // The kernel to render with the Thinlens camera

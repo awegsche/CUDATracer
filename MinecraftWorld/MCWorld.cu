@@ -30,7 +30,7 @@ __device__ bool world_hit(
 	float tx_max, ty_max, tz_max;
 	// the following code includes modifications from Shirley and Morley (2003)
 
-	double a = 1.0 / dx;
+	float a = 1.0 / dx;
 	if (a >= 0) {
 		tx_min = (x0 - ox) * a;
 		tx_max = (x1 - ox) * a;
@@ -50,7 +50,7 @@ __device__ bool world_hit(
 		ty_max = (y0 - oy) * b;
 	}
 
-	double c = 1.0 / dz;
+	float c = 1.0 / dz;
 	if (c >= 0) {
 		tz_min = (z0 - oz) * c;
 		tz_max = (z1 - oz) * c;
@@ -60,7 +60,7 @@ __device__ bool world_hit(
 		tz_max = (z0 - oz) * c;
 	}
 
-	double t0, t1;
+	float t0, t1;
 
 	if (tx_min > ty_min)
 		t0 = tx_min;
@@ -100,11 +100,11 @@ __device__ bool world_hit(
 
 	// ray parameter increments per cell in the x, y, and z directions
 
-	double dtx = (tx_max - tx_min) / nx;
-	double dty = (ty_max - ty_min) / ny;
-	double dtz = (tz_max - tz_min) / nz;
+	float dtx = (tx_max - tx_min) / nx;
+	float dty = (ty_max - ty_min) / ny;
+	float dtz = (tz_max - tz_min) / nz;
 
-	double 	tx_next, ty_next, tz_next;
+	float 	tx_next, ty_next, tz_next;
 	int 	ix_step, iy_step, iz_step;
 	int 	ix_stop, iy_stop, iz_stop;
 

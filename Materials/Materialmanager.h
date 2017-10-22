@@ -41,7 +41,7 @@ private:
 	std::vector<float4> host_texels;
 	std::vector<uint2> host_dims;
 	std::vector<texture_pos> host_positions;
-	texture_pos size;
+	//texture_pos size;
 	texture_pos current_texture;
 	std::vector<material_params> host_materials;
 

@@ -13,4 +13,4 @@ typedef unsigned int uint;
 #define invPI		.3183098861837907f
 #define TWO_PI		6.283185307179586f
 #define GRAD		0.017453292519943295f
-#define kEPSILON	1.0e-4f;
+#define kEPSILON	1.0e-4f

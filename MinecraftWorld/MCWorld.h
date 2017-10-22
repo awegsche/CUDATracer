@@ -30,6 +30,11 @@ struct world_struct {
 	// 3. block info
 	block_struct* blocks;
 
+	// 4. lights
+	float3 light_dir;
+	float4 light_col;
+	float light_intensity;
+
 };
 
 // Data oriented Minecraft World

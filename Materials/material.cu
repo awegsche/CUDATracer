@@ -7,19 +7,32 @@ __device__ float4 get_color(float4* texels, texture_pos* positions, uint2* dimen
 	texture_pos pos, float u, float v) 
 {
 	uint2 dim = dimensions[pos];
+	int iv = u * (dim.x-1);
+	int iu = v * (dim.y-1);
 
-	texture_pos index = positions[pos] + (int)(u * (float)dim.x) + (int)(v * (float)dim.y * (float)dim.x);
+	texture_pos index = positions[pos] + iu + iv * dim.x;
 	return texels[index];
 }
 
-__device__ float4 shade(ShadeRec &sr, material_params* materials,
-	float4* texels, texture_pos* positions, uint2* dimensions) {
+__device__ float4 shade(ShadeRec &sr, world_struct *world) {
 
-	//float3 wo = -sr.ray.d;
+	float3 wo = -sr.ray.d;
 
-	material_params material = materials[sr.material];
+	material_params material = world->materials[sr.material];
+	float4 texel_color = get_color(world->texels, world->positions, world->dimensions, material.position, sr.u, sr.v);
 
-	float4 L = scale_color(get_color(texels, positions, dimensions, material.position, sr.u, sr.v), material.ka);
+	// ==== Simple Ambient ======
+	// lambertian rho
+	float4 L = scale_color(texel_color, material.ka);
+	
+	// ==== sun: ================
+	float ndotwi = sr.normal * world->light_dir;
+
+	if (ndotwi > 0.f) {
+		L = add_colors(L, scale_color(texel_color, material.kd * invPI));
+	}
+
+	
 	/*int numLights = sr.w->lights.size();
 
 	for (int j = 0; j < numLights; j++) {

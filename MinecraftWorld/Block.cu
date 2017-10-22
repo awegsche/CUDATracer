@@ -8,6 +8,8 @@
 __device__ bool blockhit(Ray ray, ShadeRec &sr, block_struct *blocks, uint blockid, float &t) {
 	block_struct B = blocks[blockid];
 
+	if (t < kEPSILON)
+		return false;
 
 	switch (B.hittype)
 	{
@@ -58,6 +60,7 @@ __device__ bool blockhit(Ray ray, ShadeRec &sr, block_struct *blocks, uint block
 
 		sr.ray.o = ray.o;
 		sr.ray.d = ray.d;
+		sr.t = t;
 
 		return true;
 	}
