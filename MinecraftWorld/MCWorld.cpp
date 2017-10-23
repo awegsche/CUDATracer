@@ -10,6 +10,7 @@
 
 #include "Materials/Materialmanager.h"
 #include "Materials/RGBColors.h"
+#include "Samplers/sampler.h"
 
 
 #if !defined WIN64 && !defined WIN32
@@ -18,8 +19,11 @@ const QString texturepath = "/home/awegsche/Minecraft/minecraft/textures/blocks/
 const QString texturepath = "G:\\Games\\Minecraft\\res\\minecraft\\textures\\blocks\\";
 #endif
 
+#define DEFAULT_KA .3f
+#define DEFAULT_KD .8f
 
 MCWorld::MCWorld()
+	:num_samples(20)
 {
 	using namespace std;
 	cout << "=================================================\n";
@@ -58,39 +62,44 @@ MCWorld::MCWorld()
 
 	for (int i = 1; i < 256; i++)
 		_make_block(device_world->blocks[i],
-			m->create_matte(1.0, 1.0, m->create_constantcolor(1.0, 0.0, 1.0)), SOLIDBLOCK);
+			m->create_matte(.3, .4, m->create_constantcolor(1.0, 0.0, 1.0)), SOLIDBLOCK);
 	_make_block(device_world->blocks[0], 0, INVALID); // air 
 
 	_make_block(
 		device_world->blocks[BlockInfo::GrassSide],
-		m->create_matte(.4f, .4f, m->load_texture(texturepath + "grass_top.png")),
-		m->create_matte(.4f, .4f, m->load_texture(texturepath + "grass_side.png")),
+		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "grass_top.png", .0f, 1.0f, .0f)),
+		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "grass_side.png")),
 		SOLIDBLOCK
 	);
 
 	_make_block(
 		device_world->blocks[BlockInfo::LeavesOak],
-		m->create_matte(.4f, .4f, m->load_texture(texturepath + "leaves_oak.png")),
+		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "leaves_oak.png", .0f, 1.0f, .0f)),
 		SOLIDBLOCK
 	);
 	_make_block(
 		device_world->blocks[BlockInfo::Stone],
-		m->create_matte(.4f, .4f, m->load_texture(texturepath + "stone.png")),
+		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "stone.png")),
 		SOLIDBLOCK
 	);
 	_make_block(
 		device_world->blocks[BlockInfo::CobbleStone],
-		m->create_matte(.4f, .4f, m->load_texture(texturepath + "cobblestone.png")),
+		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "cobblestone.png")),
 		SOLIDBLOCK
 	);
 	_make_block(
 		device_world->blocks[BlockInfo::OakWoodPlank], 
-		m->create_matte(.4f, .4f, m->load_texture(texturepath + "planks_oak.png")),
+		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "planks_oak.png")),
 		SOLIDBLOCK
 	);
 	_make_block(
 		device_world->blocks[BlockInfo::WaterStill],
-		m->create_matte(.4f, .4f, m->load_texture(texturepath + "water_still.png")),
+		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "water_still.png")),
+		SOLIDBLOCK
+	);
+	_make_block(
+		device_world->blocks[BlockInfo::Sand],
+		m->create_matte(DEFAULT_KA, 1.2f, m->load_texture(texturepath + "sand.png")),
 		SOLIDBLOCK
 	);
 
@@ -104,9 +113,16 @@ MCWorld::MCWorld()
 	device_world->dimensions = m->dimensions;
 
 	// Setup light
-	device_world->light_dir = make_float3(1.0, 1.0, 1.0);
+	device_world->light_dir = _normalize(make_float3(1.0, .5, 3.4442));
 	device_world->light_col = rgbcolor(1.0, 1.0, 1.0);
-	device_world->light_intensity = 2.0;
+	device_world->light_intensity = 1.5f;
+
+
+	sampler *S = new sampler();
+
+	S->generate_samples(num_samples);
+
+	device_world->smplr = S->get_device_sampler();
 	
 }
 

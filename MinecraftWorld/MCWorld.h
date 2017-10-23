@@ -4,6 +4,7 @@
 #include <vector>
 #include "Materials/Materialmanager.h"
 #include "BlockInfo.h"
+#include "Samplers/sampler.h"
 
 // The side length of one block
 // If 1.0, ray tracer world coordinates and game coordinates are identical.
@@ -35,6 +36,8 @@ struct world_struct {
 	float4 light_col;
 	float light_intensity;
 
+	sampler_struct* smplr;
+	
 };
 
 // Data oriented Minecraft World
@@ -45,6 +48,8 @@ class MCWorld
 
 	// ====== host memory: ========================
 	std::vector<MCChunk> host_chunks;
+
+	int num_samples;
 
 public:
 	MCWorld();

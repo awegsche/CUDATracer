@@ -114,6 +114,7 @@
     <ClCompile Include="MinecraftWorld\BlockInfo.cpp" />
     <ClCompile Include="Materials\Materialmanager.cpp" />
     <ClCompile Include="MinecraftWorld\MCChunk.cpp" />
+    <ClCompile Include="Samplers\sampler.cpp" />
     <CudaCompile Include="RenderObjects\Camera.cu" />
     <ClCompile Include="MinecraftWorld\MCWorld.cpp" />
     <ClCompile Include="NBT\bigendianreader.cpp" />
@@ -160,6 +161,7 @@
     <ClInclude Include="NBT\nbttagstring.h" />
     <ClInclude Include="Materials\RGBColors.h" />
     <ClInclude Include="RenderObjects\render_structs.h" />
+    <ClInclude Include="Samplers\sampler.h" />
     <ClInclude Include="Testing\test_setup.cuh" />
     <ClInclude Include="Testing\test_setup.h" />
     <CudaCompile Include="Mandelbrot_cuda.cu" />

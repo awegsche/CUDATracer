@@ -14,7 +14,8 @@ MaterialManager::~MaterialManager()
 {
 }
 
-texture_pos MaterialManager::load_texture(const QString & filename, int sprite_width, int sprite_height)
+texture_pos MaterialManager::load_texture(const QString & filename,
+	const float r, const float g, const float b)
 {
 	QImage i;
 	uint2 dims;
@@ -36,7 +37,11 @@ texture_pos MaterialManager::load_texture(const QString & filename, int sprite_w
 			for (int y = 0; y < dims.y; y++)
 			{
 				QRgb col = i.pixel(x, y);
-				host_texels.push_back(Qrgb_to_float4(col));
+				float4 color = Qrgb_to_float4(col);
+				color.x *= r;
+				color.y *= g;
+				color.z *= b;
+				host_texels.push_back(color);
 			}
 		
 	}

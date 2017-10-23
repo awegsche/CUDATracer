@@ -29,7 +29,7 @@ __device__ float4 shade(ShadeRec &sr, world_struct *world) {
 	float ndotwi = sr.normal * world->light_dir;
 
 	if (ndotwi > 0.f) {
-		L = add_colors(L, scale_color(texel_color, material.kd * invPI));
+		L = add_colors(L, scale_color(texel_color, material.kd * invPI * world->light_intensity * ndotwi));
 	}
 
 	

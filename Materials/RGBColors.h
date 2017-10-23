@@ -40,15 +40,23 @@ __device__ inline float4 rgbcolor(const float brightness) {
 __device__ inline uchar4 _rgbcolor_to_byte(const float4 &col) {
 	uchar4 f;
 
-	float r = clamp(col.x, .0f, 1.f);
-	float g = clamp(col.y, .0f, 1.f);
-	float b = clamp(col.z, .0f, 1.f);
+	float max_channel = col.z;
 
-	f.x = (uchar)(r * 255.0f);
-	f.y = (uchar)(g * 255.0f);
-	f.z = (uchar)(b * 255.0f);
+	if (col.x > col.y && col.x > col.z)
+		max_channel = col.x;
+	else if (col.y > col.z)
+		max_channel = col.y;
+
+	float rescale = 255.0f;
+
+	if (max_channel > 1.0f) 
+		rescale = 1.0f / max_channel * 255.0f;
+
+	f.x = (uchar)(col.x  * rescale);
+	f.y = (uchar)(col.y  * rescale);
+	f.z = (uchar)(col.z  * rescale);
 	f.w = (uchar)(col.w * 255.0f);
-
+	
 	return f;
 }
 

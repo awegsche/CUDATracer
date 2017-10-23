@@ -9,6 +9,7 @@
 #include "MinecraftWorld/MCWorld.h"
 #include "MinecraftWorld/MCWorld.cu"
 #include "Materials/material.cu"
+#include "Samplers/sampler.cu"
 
 __device__ float4 trace_ray(
 	Ray &ray,
@@ -29,7 +30,10 @@ __device__ float4 trace_ray(
 		return shade(sr, world);// -rgbcolor(t / 1000.f, 0.f, 0.f);
 		return rgbcolor(1, 0, 0);
 	}
-	return rgbcolor(.7f, .8f, 1.0f);
+	float sky = clamp(ray.d.y * 2.5f, 0.0f, .8f);
+	
+	//return rgbcolor(.7f , .8f , 1.0f );
+	return rgbcolor(.5f - sky, .9f - sky, 1.0f - sky * 0.3);
 }
 
 // The kernel to render with the Thinlens camera
@@ -42,24 +46,27 @@ __global__ void render_kernel(
 	float2 sp;      // Sample point in [0,1]x[0,1]
 	float2 pp;      // Sample point on a pixel
 	float2 ap;     // Sample point on aperture;
+	
+	
 
-	sp.x = 0.0f;
-	sp.y = 0.0f;
-	ap.x = 0.0f;
-	ap.y = 0.0f;
 
 	int ix = threadIdx.x + blockIdx.x * blockDim.x;
 	int iy = threadIdx.y + blockIdx.y * blockDim.y;
 
+	//ap = sample_disk(world->smplr, ix);
+	ap.x = 0;
+	ap.y = 0;
 
 
 
 	int depth = 0;
-	float4 L = rgbcolor(.5, .8, 1.0);
+	float4 L = rgbcolor(0,0,0);
 
 
 	for (int j = 0; j < num_samples; j++) {
 		//sp = vp.sampler_ptr->sample_unit_square();
+		sp = sample_square(world->smplr, ix + j + iy);
+		ap = sample_disk(world->smplr, ix + j + iy);
 
 		pp.x = s * (ix - 0.5 * hres + sp.x);
 		pp.y = s * (iy - 0.5 * vres + sp.y);
@@ -68,16 +75,16 @@ __global__ void render_kernel(
 		ray.o = eye + (aperture * ap.x) * u + (aperture * ap.y) * v;
 		float3 dir = (pp.x - aperture * ap.x) * u + (pp.y - aperture * ap.y) * v - d * w;
 		ray.d = _normalize(dir);
-		L = trace_ray(
+		L = add_colors(L, trace_ray(
 			ray,
 			world->bb_p0, world->bb_p1, WORLDSIZE_INCHUNKS, 16, WORLDSIZE_INCHUNKS,
-			world);
+			world));
 		//L = rgbcolor(ray.d.x, ray.d.y, ray.d.z);
 
 	}
-	/*L /= num_samples;
-	L *= exposure_time;
-	rgb[column] = L.truncate().to_uint();*/
+	L = scale_color(L, 1.0f / num_samples);
+	//L *= exposure_time;
+	
 	dst[ix + iy * hres] = _rgbcolor_to_byte(L);
 
 	
@@ -86,7 +93,7 @@ __global__ void render_kernel(
 
 
 Camera::Camera()
-	:d(1000.0f), zoom(1.0f)
+	:d(38.0f), zoom(.02f), aperture(.15f)
 {
 	up = make_float3(0.f, 1.f, 0.f);
 }
@@ -101,14 +108,11 @@ void Camera::render(uchar4 * frame, const int width, const int height) const
 	dim3 threads(BLOCKDIM_X, BLOCKDIM_Y);
 	dim3 num_blocks = dim3(width / BLOCKDIM_X, height / BLOCKDIM_Y);
 
-	float3 f = _make_float3(100, 1, 0);
-	float3 norm = _normalize(f);
-
-	float3 eye2 = eye;
+	
 
 	render_kernel << <num_blocks, threads >> > (
-		frame, width, height, 1, zoom,
-		eye, u, v, w, 1.0f, d, world);
+		frame, width, height, world->smplr->num_samples, zoom,
+		eye, u, v, w, aperture, d, world);
 
 
 }
