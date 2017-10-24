@@ -7,12 +7,20 @@
 #include "MCChunk.cu"
 
 __device__ bool world_hit(
-	Ray &ray, float &t,
-	const float3 &p0, const float3 &p1, const int nx, const int ny, const int nz,
-	chunk_struct** cells, ShadeRec &sr, block_struct *blocks) 
+	Ray &ray, float &t, world_struct *world, ShadeRec &sr)
+	/*const float3 &p0, const float3 &p1, const int nx, const int ny, const int nz,
+	chunk_struct** cells, ShadeRec &sr, block_struct *blocks) */
 {
 	//Material* mat_ptr = sr.material_ptr;
 	t = kHUGEVALUE;
+
+	float3 p0 = world->bb_p0;
+	float3 p1 = world->bb_p1;
+	int nx = WORLDSIZE_INCHUNKS;
+	int ny = 16;
+	int nz = WORLDSIZE_INCHUNKS;
+	chunk_struct** cells = world->chunks;
+	block_struct *blocks = world->blocks;
 
 	float ox = ray.o.x;
 	float oy = ray.o.y;
@@ -167,7 +175,7 @@ __device__ bool world_hit(
 	//t = kHugeValue;
 	//real t_before = kHugeValue;
 
-	while (true) {
+	while (t > kEPSILON) {
 		chunk_struct *block_ptr = cells[ix + nx * iy + nx * ny * iz];
 		if (tx_next < ty_next && tx_next < tz_next) {
 			//real tmin = tx_next - kEpsilon;
@@ -223,6 +231,7 @@ __device__ bool world_hit(
 			}
 		}
 	}
+	return false;
 }
 
 #endif

@@ -2,6 +2,8 @@
 #include <cuda_runtime.h>
 #include "Materialmanager.h"
 #include "RGBColors.h"
+#include "MinecraftWorld/MCWorld.cu"
+#include "Samplers/sampler.h"
 
 __device__ float4 get_color(float4* texels, texture_pos* positions, uint2* dimensions,
 	texture_pos pos, float u, float v) 
@@ -14,7 +16,7 @@ __device__ float4 get_color(float4* texels, texture_pos* positions, uint2* dimen
 	return texels[index];
 }
 
-__device__ float4 shade(ShadeRec &sr, world_struct *world) {
+__device__ float4 shade(ShadeRec &sr, world_struct *world, const int index) {
 
 	float3 wo = -sr.ray.d;
 
@@ -23,13 +25,34 @@ __device__ float4 shade(ShadeRec &sr, world_struct *world) {
 
 	// ==== Simple Ambient ======
 	// lambertian rho
-	float4 L = scale_color(texel_color, material.ka);
-	
+	float4 L = scale_color(texel_color, material.ka * 0.2);
+	float3 u, v, w;
+
+	w = sr.normal;
+	v = _normalize(w ^ make_float3(-0.0073f, 1.0f, 0.0034f));
+	u = v ^ w;
+	float3 sp = sample_hemisphere(world->smplr, index);
+
+	Ray shadowray;
+	shadowray.o = sr.hitPoint + kEPSILON * sr.normal;
+	shadowray.d = sp.x * u + sp.y * v + sp.z * w;
+	ShadeRec dum;
+	float tshadow = kHUGEVALUE;
+	if (!world_hit(shadowray, tshadow, world, dum))
+		L = scale_color(texel_color, material.ka * 1.2);
+
+
 	// ==== sun: ================
-	float ndotwi = sr.normal * world->light_dir;
+	float ndotwi = -sr.normal * world->light_dir;
 
 	if (ndotwi > 0.f) {
-		L = add_colors(L, scale_color(texel_color, material.kd * invPI * world->light_intensity * ndotwi));
+		shadowray.d = world->light_dir;
+		float t = kHUGEVALUE;
+		ShadeRec dummy;
+		bool hit = world_hit(shadowray, t, world, dummy);
+
+		if(!hit)
+			L = add_colors(L, scale_color(texel_color, material.kd * invPI * world->light_intensity * ndotwi));
 	}
 
 	

@@ -2,6 +2,7 @@
 #include <vector>
 #include <vector_types.h>
 
+
 struct sampler_struct {
 	float2 *samples;
 	float2 *disk_samples;
@@ -14,6 +15,14 @@ struct sampler_struct {
 	int size;
 	int jump;
 };
+
+
+__device__ float2 sample_disk(sampler_struct* smpl, const int seed);
+
+__device__ float2 sample_square(sampler_struct* smpl, const int seed);
+
+__device__ float3 sample_hemisphere(sampler_struct* smpl, const int seed);
+
 
 class sampler
 {

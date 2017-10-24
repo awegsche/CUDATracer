@@ -37,7 +37,7 @@ struct world_struct {
 	float light_intensity;
 
 	sampler_struct* smplr;
-	
+	int num_samples;
 };
 
 // Data oriented Minecraft World

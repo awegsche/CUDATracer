@@ -68,10 +68,16 @@ uchar4 *h_Src = 0;
 
 // Destination image on the GPU side
 uchar4 *d_dst = NULL;
+float4 *film = NULL;
 
 //Original image width and height
 int imageW = 32* 10, imageH = 32 * 8;
 
+#define RENDER_BEAUTIFUL 1
+#define RESET_AFTER4 2
+
+int render_mode = 0;
+int sample_count = 0;
 
 // Timer ID
 StopWatchInterface *hTimer = NULL;
@@ -103,7 +109,7 @@ char **pArgv = NULL;
 const char *sSDKsample = "CUDA Mandelbrot/Julia Set";
 
 #define MAX_EPSILON 50
-#define REFRESH_DELAY     16.6666666 //ms
+#define REFRESH_DELAY     4 //ms
 
 
 #ifndef MAX
@@ -125,118 +131,43 @@ void setVSync(int interval)
 }
 #endif
 
-void computeFPS()
-{
-  /*  frameCount++;
-    fpsCount++;
+void reset_image() {
+	if (film)
+		cudaFree(film);
+	cudaMalloc(&film, sizeof(float4) * imageH * imageW);
+	cudaMemset(film, 0, sizeof(float4) * imageH * imageW);
+	sample_count = 1;
 
-    if (fpsCount == fpsLimit)
-    {
-        char fps[256];
-        float ifps = 1.f / (sdkGetAverageTimerValue(&hTimer) / 1000.f);
-        sprintf(fps, "<CUDA %s Set> %3.1f fps", "hallo", ifps);
-        glutSetWindowTitle(fps);
-        fpsCount = 0;
-
-        fpsLimit = MAX(1.f, (float)ifps);
-        sdkResetTimer(&hTimer);
-    }*/
 }
-//
-//void startJulia(const char *path)
-//{
-//    g_isJuliaSet = true ;
-//    g_isMoving = false ;
-//
-//    if ((path == NULL) || (stream = fopen(path, "r")) == NULL)
-//    {
-//        printf("JuliaSet: params.txt could not be opened.  Using default parameters\n");
-//        xOff = -0.085760 ;
-//        yOff =  0.007040 ;
-//        scale = 3.200000 ;
-//        xJParam = -0.172400 ;
-//        yJParam = -0.652693 ;
-//    }
-//    else
-//    {
-//        fseek(stream, 0L, SEEK_SET);
-//        fscanf(stream, "%lf %lf %lf %lf %lf", &xOff, &yOff, &scale, &xJParam, &yJParam);
-//        fclose(stream);
-//    }
-//
-//    xdOff = 0.0;
-//    ydOff = 0.0;
-//    dscale = 1.0;
-//    pass = 0 ;
-//}
 
-// Get a sub-pixel sample location
-void GetSample(int sampleIndex, float &x, float &y)
-{
-    static const unsigned char pairData[128][2] =
-    {
-        { 64,  64}, {  0,   0}, {  1,  63}, { 63,   1}, { 96,  32}, { 97,  95}, { 36,  96}, { 30,  31},
-        { 95, 127}, {  4,  97}, { 33,  62}, { 62,  33}, { 31, 126}, { 67,  99}, { 99,  65}, {  2,  34},
-        { 81,  49}, { 19,  80}, {113,  17}, {112, 112}, { 80,  16}, {115,  81}, { 46,  15}, { 82,  79},
-        { 48,  78}, { 16,  14}, { 49, 113}, {114,  48}, { 45,  45}, { 18,  47}, { 20, 109}, { 79, 115},
-        { 65,  82}, { 52,  94}, { 15, 124}, { 94, 111}, { 61,  18}, { 47,  30}, { 83, 100}, { 98,  50},
-        {110,   2}, {117,  98}, { 50,  59}, { 77,  35}, {  3, 114}, {  5,  77}, { 17,  66}, { 32,  13},
-        {127,  20}, { 34,  76}, { 35, 110}, {100,  12}, {116,  67}, { 66,  46}, { 14,  28}, { 23,  93},
-        {102,  83}, { 86,  61}, { 44, 125}, { 76,   3}, {109,  36}, {  6,  51}, { 75,  89}, { 91,  21},
-        { 60, 117}, { 29,  43}, {119,  29}, { 74,  70}, {126,  87}, { 93,  75}, { 71,  24}, {106, 102},
-        {108,  58}, { 89,   9}, {103,  23}, { 72,  56}, {120,   8}, { 88,  40}, { 11,  88}, {104, 120},
-        { 57, 105}, {118, 122}, { 53,   6}, {125,  44}, { 43,  68}, { 58,  73}, { 24,  22}, { 22,   5},
-        { 40,  86}, {122, 108}, { 87,  90}, { 56,  42}, { 70, 121}, {  8,   7}, { 37,  52}, { 25,  55},
-        { 69,  11}, { 10, 106}, { 12,  38}, { 26,  69}, { 27, 116}, { 38,  25}, { 59,  54}, {107,  72},
-        {121,  57}, { 39,  37}, { 73, 107}, { 85, 123}, { 28, 103}, {123,  74}, { 55,  85}, {101,  41},
-        { 42, 104}, { 84,  27}, {111,  91}, {  9,  19}, { 21,  39}, { 90,  53}, { 41,  60}, { 54,  26},
-        { 92, 119}, { 51,  71}, {124, 101}, { 68,  92}, { 78,  10}, { 13, 118}, {  7,  84}, {105,   4}
-    };
-
-    x = (1.0f / 128.0f) * (0.5f + (float)pairData[sampleIndex][0]);
-    y = (1.0f / 128.0f) * (0.5f + (float)pairData[sampleIndex][1]);
-} // GetSample
 
 
 // render Mandelbrot image using CUDA or CPU
 void renderImage()
 {
-
-   
-       
-
-       
-    // DEPRECATED: checkCudaErrors(cudaGLMapBufferObject((void**)&d_dst, gl_PBO));
     checkCudaErrors(cudaGraphicsMapResources(1, &cuda_pbo_resource, 0));
     size_t num_bytes;
     checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&d_dst, &num_bytes, cuda_pbo_resource));
-        
 
-    // Render anti-aliasing passes until we run out time (60fps approximately)
-
-    do
-    {
-
-        float xs, ys;
-
-        // Get the anti-alias sub-pixel sample location
-        GetSample(pass & 127, xs, ys);
-
-        // Get the pixel scale and offset
-        double s = 1.0 / (float)imageW;
-        double x = (xs - (double)imageW * 0.5f) * s ;
-        double y = (ys - (double)imageH * 0.5f) * s ;
-
+	switch (render_mode) {
+	case 0:
 		camera->render(d_dst, imageW, imageH);
+		break;
+	case RENDER_BEAUTIFUL:
+		camera->expose(d_dst, film, imageW, imageH, sample_count++);
+		break;
+	case RESET_AFTER4:
+		if (sample_count > 4)
+			reset_image();
+		camera->expose(d_dst, film, imageW, imageH, sample_count++);
+		break;
+	}
+	
+	
             
-	 cudaError_t err =	cudaDeviceSynchronize();
-        // Estimate the total time of the frame if one more pass is rendered
+	cudaError_t err =	cudaDeviceSynchronize();  
         
-    }
-    while (false/*(pass < 128) && (timeEstimate < 1.0f / 60.0f)*/);
 	checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_pbo_resource, 0));
-
-    
 }
 
 // OpenGL display function
@@ -247,19 +178,8 @@ void displayFunc(void)
 
 	renderImage();
 
-	// DEPRECATED: checkCudaErrors(cudaGLUnmapBufferObject(gl_PBO));
-
-
-
-    // render the Mandelbrot image
-
-    // load texture from PBO
-    //  glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, gl_PBO);
     glBindTexture(GL_TEXTURE_2D, gl_Tex);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, imageW, imageH, GL_RGBA, GL_UNSIGNED_BYTE, BUFFER_DATA(0));
-    //  glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-
-    // fragment program is required to display floating point texture
     glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, gl_Shader);
     glEnable(GL_FRAGMENT_PROGRAM_ARB);
     glDisable(GL_DEPTH_TEST);
@@ -281,10 +201,13 @@ void displayFunc(void)
     sdkStopTimer(&hTimer);
     glutSwapBuffers();
 
-	float now = sdkGetTimerValue(&hTimer);
-	float ifps = 1000.f / (now - last_time);
+	
+	float elapsed = sdkGetTimerValue(&hTimer) - last_time;
+
+	//if(elapsed > 250.f)
+	float ifps = 1000.f / elapsed;
 	char fps[256];
-	sprintf(fps, "<CUDA %s Set> %3.1f fps %f", "hallo", ifps, now-last_time);
+	sprintf(fps, "<CUDA %s Set> %3.1f fps %f %d", "hallo", ifps, sdkGetTimerValue(&hTimer), sample_count);
 	glutSetWindowTitle(fps);
 	last_time = sdkGetTimerValue(&hTimer);
 
@@ -331,6 +254,15 @@ void specialFUNC(int k, int, int) {
 	}
 }
 
+
+void switch_render_mode() {
+	render_mode = (render_mode + 1) % 3;
+
+	if (render_mode) {
+		reset_image();
+	}
+}
+
 // OpenGL keyboard function
 void keyboardFunc(unsigned char k, int, int)
 {
@@ -363,297 +295,23 @@ void keyboardFunc(unsigned char k, int, int)
 		case 'd':
 			camera->move_eye_left(10);
 			break;
-			/* case '?':
-            printf("xOff = %5.8f\n", xOff);
-            printf("yOff = %5.8f\n", yOff);
-            printf("scale = %e\n", scale);
-            printf("detail = %d\n", crunch);
-            printf("color = %d\n", colorSeed);
-            printf("xJParam = %5.8f\n", xJParam) ;
-            printf("yJParam = %5.8f\n", yJParam) ;
-            printf("\n");
-            break;*/
+		case ' ':
+			std::cout << "fskfhuksef";
+			switch_render_mode();
+			break;
+		case '+':
+			camera->zoom_in();
+			break;
+		case '-':
+			camera->zoom_out();
+			break;
+		case '1':
+			camera->increase_aperture();
+			break;
+		case '2':
+			camera->decrease_aperture();
+			break;
 
-        //case 'e':
-        //case 'E':
-        //    // Reset all values to their defaults
-        //    g_isJuliaSet = false ;
-        //    g_isMoving = true ;
-        //    g_runCPU = false ;
-        //    printf("All parameters are reset to defaults. GPU implementation is used.\n") ;
-        //    xOff = -0.5;
-        //    yOff = 0.0;
-        //    scale = 3.2;
-        //    xdOff = 0.0;
-        //    ydOff = 0.0;
-        //    dscale = 1.0;
-        //    colorSeed = 0;
-        //    colors.x = 3;
-        //    colors.y = 5;
-        //    colors.z = 7;
-        //    crunch = 512;
-        //    animationFrame = 0;
-        //    animationStep = 0;
-        //    xJParam = 0.0 ;
-        //    yJParam = 0.0 ;
-        //    pass = 0;
-        //    break;
-
-        /*case 'c':
-            seed = ++colorSeed;
-
-            if (seed)
-            {
-                colors.x = RANDOMBITS(seed, 4);
-                colors.y = RANDOMBITS(seed, 4);
-                colors.z = RANDOMBITS(seed, 4);
-            }
-            else
-            {
-                colors.x = 3;
-                colors.y = 5;
-                colors.z = 7;
-            }
-
-            pass = 0;
-            break;
-*/
-        /*case 'C':
-            seed = --colorSeed;
-
-            if (seed)
-            {
-                colors.x = RANDOMBITS(seed, 4);
-                colors.y = RANDOMBITS(seed, 4);
-                colors.z = RANDOMBITS(seed, 4);
-            }
-            else
-            {
-                colors.x = 3;
-                colors.y = 5;
-                colors.z = 7;
-            }
-
-            pass = 0;
-            break;
-*/
-//        case 'a':
-//            if (animationStep < 0)
-//            {
-//                animationStep = 0;
-//            }
-//            else
-//            {
-//                animationStep++;
-//
-//                if (animationStep > 8)
-//                {
-//                    animationStep = 8;
-//                }
-//            }
-//
-//            break;
-//
-//        case 'A':
-//            if (animationStep > 0)
-//            {
-//                animationStep = 0;
-//            }
-//            else
-//            {
-//                animationStep--;
-//
-//                if (animationStep < -8)
-//                {
-//                    animationStep = -8;
-//                }
-//            }
-//
-//            break;
-//
-//        case 'd':
-//            if (2*crunch <= MIN(numSMs * (version < 20 ? 512 : 2048), 0x4000))
-//            {
-//                crunch *= 2;
-//                pass = 0;
-//            }
-//
-//            printf("detail = %d\n", crunch);
-//            break;
-//
-//        case 'D':
-//            if (crunch > 2)
-//            {
-//                crunch /= 2;
-//                pass = 0;
-//            }
-//
-//            printf("detail = %d\n", crunch);
-//            break;
-//
-//        case 'r' :
-//            colors.x -= 1 ;
-//            pass = 0 ;
-//            break ;
-//
-//        case 'R' :
-//            colors.x += 1 ;
-//            pass = 0 ;
-//            break ;
-//
-//        case 'g' :
-//            colors.y -= 1 ;
-//            pass = 0 ;
-//            break ;
-//
-//        case 'G' :
-//            colors.y += 1 ;
-//            pass = 0 ;
-//            break ;
-//
-//        case 'b' :
-//            colors.z -= 1 ;
-//            pass = 0 ;
-//            break ;
-//
-//        case 'B' :
-//            colors.z += 1 ;
-//            pass = 0 ;
-//            break ;
-//
-//        case 's' :
-//        case 'S' :
-//            if (g_runCPU)
-//            {
-//                g_runCPU = false ;
-//                printf("GPU implementation\n") ;
-//            }
-//            else
-//            {
-//                g_runCPU = true ;
-//                printf("CPU implementation\n") ;
-//            }
-//
-//            pass = 0 ;
-//            glutDestroyMenu(glutGetMenu()) ;
-//            initMenus() ;
-//            break ;
-//
-//        case 'j' :
-//        case 'J' :
-//
-//            // toggle between Mandelbrot and Julia sets and reset all parameters
-//            if (!g_isJuliaSet)      // settings for Julia
-//            {
-//                g_isJuliaSet = true;
-//                startJulia("params.txt") ;
-//            }
-//            else                    // settings for Mandelbrot
-//            {
-//                g_isJuliaSet = false ;
-//                g_isMoving = true ;
-//                xOff = -0.5;
-//                yOff = 0.0;
-//                scale = 3.2;
-//                xdOff = 0.0;
-//                ydOff = 0.0;
-//                dscale = 1.0;
-//                colorSeed = 0;
-//                colors.x = 3;
-//                colors.y = 5;
-//                colors.z = 7;
-//                crunch = 512;
-//                animationFrame = 0;
-//                animationStep = 0;
-//                pass = 0 ;
-//            }
-//
-//            char fps[30];
-//            sprintf(fps, "<CUDA %s Set>", g_isJuliaSet ? "Julia" : "Mandelbrot");
-//            glutSetWindowTitle(fps);
-//
-//            break ;
-//
-//        case 'm' :
-//        case 'M' :
-//            if (g_isJuliaSet)
-//            {
-//                g_isMoving = !g_isMoving ;
-//                pass = 0 ;
-//            }
-//
-//            break ;
-//
-//        case 'p':
-//        case 'P' :
-//#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
-//            if (fopen_s(&stream, "params.txt", "w") != 0)
-//#else
-//            if ((stream = fopen("params.txt", "w")) == NULL)
-//#endif
-//            {
-//                printf("The file params.txt was not opened\n");
-//                break ;
-//            }
-//
-//            fprintf(stream, "%f %f %f %f %f\n", xOff, yOff, scale, xJParam, yJParam);
-//            fclose(stream);
-//            break ;
-//
-//        case 'o':
-//        case 'O' :
-//#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
-//            if (fopen_s(&stream, "params.txt", "r") != 0)
-//#else
-//            if ((stream = fopen("params.txt", "r")) == NULL)
-//#endif
-//            {
-//                printf("The file params.txt was not opened\n");
-//
-//                break ;
-//            }
-//
-//            fseek(stream, 0L, SEEK_SET);
-//            fscanf(stream, "%lf %lf %lf %lf %lf", &xOff, &yOff, &scale, &xJParam, &yJParam);
-//            xdOff = 0.0;
-//            ydOff = 0.0;
-//            dscale = 1.0;
-//            fclose(stream);
-//            pass = 0 ;
-//            break ;
-//
-//        case '4':   // Left arrow key
-//            xOff -= 0.05f * scale;
-//            pass = 0;
-//            break;
-//
-//        case '8':   // Up arrow key
-//            yOff += 0.05f * scale;
-//            pass = 0;
-//            break;
-//
-//        case '6':   // Right arrow key
-//            xOff += 0.05f * scale;
-//            pass = 0;
-//            break;
-//
-//        case '2':   // Down arrow key
-//            yOff -= 0.05f * scale;
-//            pass = 0;
-//            break;
-//
-//        case '+':
-//            scale /= 1.1f;
-//            pass = 0;
-//            break;
-//
-//        case '-':
-//            scale *= 1.1f;
-//            pass = 0;
-//            break;
-//
-//        default:
-//            break;
     }
 
 } // keyboardFunc
@@ -688,6 +346,8 @@ void clickFunc(int button, int state, int x, int y)
     {
         leftClicked = 0;
         middleClicked = 0;
+
+		
     }
 
     lastx = x;
@@ -852,7 +512,18 @@ void initOpenGLBuffers(int w, int h)
 
     // load shader program
     gl_Shader = compileASMShader(GL_FRAGMENT_PROGRAM_ARB, shader_code);
+
+	reset_image();
 }
+
+void wheelFunc(int wheel, int direction, int x, int y) {
+	if (direction > 0)
+		camera->increase_d();
+	if (direction < 0)
+		camera->decrease_d();
+}
+
+
 
 void reshapeFunc(int w, int h)
 {
@@ -888,8 +559,9 @@ void initGL(int *argc, char **argv)
     glutDisplayFunc(displayFunc);
     glutSpecialFunc(specialFUNC);
 	glutKeyboardFunc(keyboardFunc);
-    glutMouseFunc(clickFunc);
-    glutMotionFunc(motionFunc);
+	glutMouseFunc(clickFunc);
+	glutMouseWheelFunc(wheelFunc);
+	glutMotionFunc(motionFunc);
     glutReshapeFunc(reshapeFunc);
     glutTimerFunc(REFRESH_DELAY, timerEvent, 0);
     initMenus();
@@ -1038,7 +710,7 @@ void runBenchmark(int argc, char **argv)
     float xs, ys;
 
     // Get the anti-alias sub-pixel sample location
-    GetSample(0, xs, ys);
+   // GetSample(0, xs, ys);
 
     double s = 1.0 / (float)imageW;
     double x = (xs - (double)imageW * 0.5f) * s ;
@@ -1092,6 +764,8 @@ void printHelp()
 }
 
 void initWorld() {
+
+
 
 
 	world = new MCWorld();
@@ -1191,26 +865,26 @@ int main(int argc, char **argv)
 	initWorld();
 
 
-    printf("Starting GLUT main loop...\n");
-    printf("\n");
-    printf("Press [s] to toggle between GPU and CPU implementations\n") ;
-    printf("Press [j] to toggle between Julia and Mandelbrot sets\n") ;
-    printf("Press [r] or [R] to decrease or increase red color channel\n") ;
-    printf("Press [g] or [G] to decrease or increase green color channel\n") ;
-    printf("Press [b] or [B] to decrease or increase blue color channel\n") ;
-    printf("Press [e] to reset\n");
-    printf("Press [a] or [A] to animate colors\n");
-    printf("Press [c] or [C] to change colors\n");
-    printf("Press [d] or [D] to increase or decrease the detail\n");
-    printf("Press [p] to record main parameters to file params.txt\n") ;
-    printf("Press [o] to read main parameters from file params.txt\n") ;
-    printf("Left mouse button + drag = move (Mandelbrot or Julia) or animate (Julia)\n");
-    printf("Press [m] to toggle between move and animate (Julia) for left mouse button\n") ;
-    printf("Middle mouse button + drag = Zoom\n");
-    printf("Right mouse button = Menu\n");
-    printf("Press [?] to print location and scale\n");
-    printf("Press [q] to exit\n");
-    printf("\n");
+    //printf("Starting GLUT main loop...\n");
+    //printf("\n");
+    //printf("Press [s] to toggle between GPU and CPU implementations\n") ;
+    //printf("Press [j] to toggle between Julia and Mandelbrot sets\n") ;
+    //printf("Press [r] or [R] to decrease or increase red color channel\n") ;
+    //printf("Press [g] or [G] to decrease or increase green color channel\n") ;
+    //printf("Press [b] or [B] to decrease or increase blue color channel\n") ;
+    //printf("Press [e] to reset\n");
+    //printf("Press [a] or [A] to animate colors\n");
+    //printf("Press [c] or [C] to change colors\n");
+    //printf("Press [d] or [D] to increase or decrease the detail\n");
+    //printf("Press [p] to record main parameters to file params.txt\n") ;
+    //printf("Press [o] to read main parameters from file params.txt\n") ;
+    //printf("Left mouse button + drag = move (Mandelbrot or Julia) or animate (Julia)\n");
+    //printf("Press [m] to toggle between move and animate (Julia) for left mouse button\n") ;
+    //printf("Middle mouse button + drag = Zoom\n");
+    //printf("Right mouse button = Menu\n");
+    //printf("Press [?] to print location and scale\n");
+    //printf("Press [q] to exit\n");
+    //printf("\n");
 
     sdkCreateTimer(&hTimer);
     sdkStartTimer(&hTimer);

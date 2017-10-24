@@ -30,6 +30,8 @@ public:
 
 	void render(uchar4* frame, const int w, const int h) const;
 
+	void expose(uchar4* frame, float4* colors, const int w, const int h, const int sample_count) const;
+
 	void compute_uvw();
 
 
@@ -46,6 +48,12 @@ public:
 	void rotate_down(float d);
 	void rotate_left(float d);
 	void rotate_right(float d);
+	void increase_d();
+	void decrease_d();
+	void zoom_in();
+	void zoom_out();
+	void increase_aperture();
+	void decrease_aperture();
 	
 	void set_up(float x, float y, float z);
 

@@ -23,7 +23,7 @@ const QString texturepath = "G:\\Games\\Minecraft\\res\\minecraft\\textures\\blo
 #define DEFAULT_KD .8f
 
 MCWorld::MCWorld()
-	:num_samples(20)
+	:num_samples(1)
 {
 	using namespace std;
 	cout << "=================================================\n";
@@ -120,9 +120,10 @@ MCWorld::MCWorld()
 
 	sampler *S = new sampler();
 
-	S->generate_samples(num_samples);
+	S->generate_samples(256);
 
 	device_world->smplr = S->get_device_sampler();
+	device_world->num_samples = num_samples;
 	
 }
 
