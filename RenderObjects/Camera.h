@@ -28,9 +28,11 @@ public:
 	~Camera();
 
 
-	void render(uchar4* frame, const int w, const int h) const;
+	void render(float4* colors, const int w, const int h) const;
 
-	void expose(uchar4* frame, float4* colors, const int w, const int h, const int sample_count) const;
+	void expose(float4* colors, const int w, const int h, const int sample_count) const;
+
+	void finish(uchar4* frame, float4* colors, const int w, const int h, const int sample_count) const;
 
 	void compute_uvw();
 

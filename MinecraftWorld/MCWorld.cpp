@@ -124,12 +124,29 @@ MCWorld::MCWorld()
 
 	device_world->smplr = S->get_device_sampler();
 	device_world->num_samples = num_samples;
+
+	set_haze_distance(1.0e6f);
+	set_haze_attenuation(0);
+	set_haze_strength(0.01f);
+
 	
 }
 
 
 MCWorld::~MCWorld()
 {
+	if (device_world) {
+		for (int i = 0; i < WORLDSIZE_INCHUNKS * WORLDSIZE_INCHUNKS; i++)
+			if(device_world->chunks[i])
+				cudaFree(device_world->chunks[i]);
+		cudaFree(device_world->blocks);
+		cudaFree(device_world->dimensions);
+		cudaFree(device_world->materials);
+		cudaFree(device_world->positions);
+		cudaFree(device_world->smplr);
+		cudaFree(device_world->texels);
+		cudaFree(device_world);
+	}
 }
 
 void MCWorld::addRegion(const int index, const int X, const int Z, NBTTag *root)
@@ -161,4 +178,27 @@ void MCWorld::addRegion(const int index, const int X, const int Z, NBTTag *root)
 world_struct * MCWorld::get_device_world() const
 {
 	return device_world;
+}
+
+int MCWorld::get_num_samples()
+{
+	return num_samples;
+}
+
+void MCWorld::set_haze_distance(float f)
+{
+	if (device_world)
+		device_world->haze_dist = f;
+}
+
+void MCWorld::set_haze_attenuation(int power)
+{
+	if (device_world)
+		device_world->haze_attenuation = power;
+}
+
+void MCWorld::set_haze_strength(float f)
+{
+	if (device_world)
+		device_world->haze_strength =  f;
 }

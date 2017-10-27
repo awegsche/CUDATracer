@@ -16,22 +16,24 @@ __device__ float4 get_color(float4* texels, texture_pos* positions, uint2* dimen
 	return texels[index];
 }
 
-__device__ float4 shade(ShadeRec &sr, world_struct *world, const int index) {
+__device__ void shade(ShadeRec &sr, world_struct *world, const int seed, bool hitt, float4 &L, float4 &texel_color) {
+
+	if (!hitt) return;
 
 	float3 wo = -sr.ray.d;
 
 	material_params material = world->materials[sr.material];
-	float4 texel_color = get_color(world->texels, world->positions, world->dimensions, material.position, sr.u, sr.v);
+	texel_color = get_color(world->texels, world->positions, world->dimensions, material.position, sr.u, sr.v);
 
 	// ==== Simple Ambient ======
 	// lambertian rho
-	float4 L = scale_color(texel_color, material.ka * 0.2);
+	L = scale_color(texel_color, material.ka * 0.2);
 	float3 u, v, w;
 
 	w = sr.normal;
 	v = _normalize(w ^ make_float3(-0.0073f, 1.0f, 0.0034f));
 	u = v ^ w;
-	float3 sp = sample_hemisphere(world->smplr, index);
+	float3 sp = sample_hemisphere(world->smplr, seed);
 
 	Ray shadowray;
 	shadowray.o = sr.hitPoint + kEPSILON * sr.normal;
@@ -40,20 +42,6 @@ __device__ float4 shade(ShadeRec &sr, world_struct *world, const int index) {
 	float tshadow = kHUGEVALUE;
 	if (!world_hit(shadowray, tshadow, world, dum))
 		L = scale_color(texel_color, material.ka * 1.2);
-
-
-	// ==== sun: ================
-	float ndotwi = -sr.normal * world->light_dir;
-
-	if (ndotwi > 0.f) {
-		shadowray.d = world->light_dir;
-		float t = kHUGEVALUE;
-		ShadeRec dummy;
-		bool hit = world_hit(shadowray, t, world, dummy);
-
-		if(!hit)
-			L = add_colors(L, scale_color(texel_color, material.kd * invPI * world->light_intensity * ndotwi));
-	}
 
 	
 	/*int numLights = sr.w->lights.size();
@@ -86,5 +74,30 @@ __device__ float4 shade(ShadeRec &sr, world_struct *world, const int index) {
 			L = tr * L + ((real)1.0 - tr) * sr.w->tracer_ptr->trace_ray(second_ray, sr.depth + 1);
 	}*/
 
-	return L;
+	
+}
+
+__device__ void shade_shadow(world_struct *world, ShadeRec &sr, int seed, float4 &L, float4 &texel_color, bool hitt) {
+	if (!hitt) return;
+	
+	// ==== sun: ================
+
+	material_params material = world->materials[sr.material];
+
+
+	float ndotwi = -sr.normal * world->light_dir;
+
+	if (ndotwi > 0.f) {
+		Ray shadowray;
+		shadowray.o = sr.hitPoint + kEPSILON * sr.normal;
+		shadowray.d = world->light_dir;
+		float t = kHUGEVALUE;
+		ShadeRec dummy;
+		bool hit = world_hit(shadowray, t, world, dummy);
+
+		if (!hit)
+			L = add_colors(L, scale_color(texel_color, material.kd * invPI * world->light_intensity * ndotwi));
+	}
+
+
 }

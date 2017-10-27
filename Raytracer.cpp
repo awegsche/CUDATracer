@@ -71,16 +71,20 @@ uchar4 *d_dst = NULL;
 float4 *film = NULL;
 
 //Original image width and height
-int imageW = 32* 10, imageH = 32 * 8;
+int imageW = 640, imageH = 480;
 
+#define RENDER_STANDARD 0
 #define RENDER_BEAUTIFUL 1
-#define RESET_AFTER4 2
+#define RENDER_APERTURE 2
+
+bool haze = false;
 
 int render_mode = 0;
 int sample_count = 0;
 
 // Timer ID
 StopWatchInterface *hTimer = NULL;
+StopWatchInterface *myTimer = NULL;
 
 unsigned int pass = 0;
 
@@ -106,10 +110,8 @@ float last_time = 0.0f;
 int *pArgc = NULL;
 char **pArgv = NULL;
 
-const char *sSDKsample = "CUDA Mandelbrot/Julia Set";
-
 #define MAX_EPSILON 50
-#define REFRESH_DELAY     4 //ms
+#define REFRESH_DELAY     16.6666666 //ms
 
 
 #ifndef MAX
@@ -131,13 +133,15 @@ void setVSync(int interval)
 }
 #endif
 
-void reset_image() {
+float start_btime;
+
+void reset_image(int w, int h) {
 	if (film)
 		cudaFree(film);
-	cudaMalloc(&film, sizeof(float4) * imageH * imageW);
-	cudaMemset(film, 0, sizeof(float4) * imageH * imageW);
-	sample_count = 1;
-
+	cudaMalloc(&film, sizeof(float4) * w * h);
+	cudaMemset(film, 0, sizeof(float4) * w * h);
+	sample_count = 0;
+	start_btime = sdkGetTimerValue(&myTimer);
 }
 
 
@@ -145,27 +149,84 @@ void reset_image() {
 // render Mandelbrot image using CUDA or CPU
 void renderImage()
 {
+	float t0 = sdkGetTimerValue(&myTimer);
     checkCudaErrors(cudaGraphicsMapResources(1, &cuda_pbo_resource, 0));
     size_t num_bytes;
     checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&d_dst, &num_bytes, cuda_pbo_resource));
-
+	cudaError_t err;
 	switch (render_mode) {
 	case 0:
-		camera->render(d_dst, imageW, imageH);
+	{
+		do {
+
+			sample_count += world->get_num_samples();
+			camera->render(film, imageW, imageH);
+			err = cudaDeviceSynchronize();
+
+		} while ((myTimer->getTime() - t0) < 33.3f);  // 30 fps
+		camera->finish(d_dst, film, imageW, imageH, sample_count);
+		err = cudaDeviceSynchronize();
+
+		float elapsed = sdkGetTimerValue(&myTimer) - t0;
+
+		float ifps = 1000.f / elapsed;
+		char fps[256];
+		sprintf(fps, "Standard mode | %5.1f fps | %d samples | %6.2f samples/s", ifps, sample_count, ifps * sample_count);
+		glutSetWindowTitle(fps);
+
+
+		reset_image(imageW, imageH);
 		break;
+	}
+
 	case RENDER_BEAUTIFUL:
-		camera->expose(d_dst, film, imageW, imageH, sample_count++);
+	{
+		while ((sdkGetTimerValue(&myTimer) - t0) < 16.0f) {
+			camera->expose(film, imageW, imageH, sample_count += world->get_num_samples());
+			err = cudaDeviceSynchronize();
+
+		}
+		camera->finish(d_dst, film, imageW, imageH, sample_count);
+		err = cudaDeviceSynchronize();
+		float elapsed = sdkGetTimerValue(&myTimer) - t0;
+
+		float ifps = 1000.f / elapsed;
+		float time_of_image = sdkGetTimerValue(&myTimer) - start_btime;
+		char fps[256];
+		sprintf(fps, "Beautiful mode | %5.1f fps | %d samples | time: %7.2f s | %6.2f samples/s", ifps, sample_count, time_of_image / 1000.0f, 1000.0f * sample_count / time_of_image);
+
+		glutSetWindowTitle(fps);
+
+
 		break;
-	case RESET_AFTER4:
-		if (sample_count > 4)
-			reset_image();
-		camera->expose(d_dst, film, imageW, imageH, sample_count++);
+	}
+	case RENDER_APERTURE:
+	{
+		do {
+
+			sample_count += world->get_num_samples();
+			camera->expose(film, imageW, imageH, sample_count += world->get_num_samples());
+			err = cudaDeviceSynchronize();
+
+		} while ((myTimer->getTime() - t0) < 33.3f);  // 30 fps
+		camera->finish(d_dst, film, imageW, imageH, sample_count);
+		err = cudaDeviceSynchronize();
+
+		float elapsed = sdkGetTimerValue(&myTimer) - t0;
+
+		float ifps = 1000.f / elapsed;
+		char fps[256];
+		sprintf(fps, "Aperture preview mode | %5.1f fps | %d samples | %6.2f samples/s", ifps, sample_count, ifps * sample_count);
+		glutSetWindowTitle(fps);
+
+
+		reset_image(imageW, imageH);
 		break;
+	}
 	}
 	
 	
             
-	cudaError_t err =	cudaDeviceSynchronize();  
         
 	checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_pbo_resource, 0));
 }
@@ -175,6 +236,8 @@ void displayFunc(void)
 {
 	
 	sdkResetTimer(&hTimer);
+
+	
 
 	renderImage();
 
@@ -202,13 +265,6 @@ void displayFunc(void)
     glutSwapBuffers();
 
 	
-	float elapsed = sdkGetTimerValue(&hTimer) - last_time;
-
-	//if(elapsed > 250.f)
-	float ifps = 1000.f / elapsed;
-	char fps[256];
-	sprintf(fps, "<CUDA %s Set> %3.1f fps %f %d", "hallo", ifps, sdkGetTimerValue(&hTimer), sample_count);
-	glutSetWindowTitle(fps);
 	last_time = sdkGetTimerValue(&hTimer);
 
     //computeFPS();
@@ -232,6 +288,8 @@ void cleanup()
     glDeleteBuffers(1, &gl_PBO);
     glDeleteTextures(1, &gl_Tex);
     glDeleteProgramsARB(1, &gl_Shader);
+
+	delete world;
 }
 
 void initMenus() ;
@@ -255,12 +313,10 @@ void specialFUNC(int k, int, int) {
 }
 
 
-void switch_render_mode() {
-	render_mode = (render_mode + 1) % 3;
+void switch_render_mode(int mode_) {
+	render_mode = mode_;
 
-	if (render_mode) {
-		reset_image();
-	}
+	reset_image(imageW, imageH);
 }
 
 // OpenGL keyboard function
@@ -296,8 +352,16 @@ void keyboardFunc(unsigned char k, int, int)
 			camera->move_eye_left(10);
 			break;
 		case ' ':
-			std::cout << "fskfhuksef";
-			switch_render_mode();
+			if (render_mode == RENDER_BEAUTIFUL)
+				switch_render_mode(RENDER_STANDARD);
+			else
+				switch_render_mode(RENDER_BEAUTIFUL);
+			break;
+		case '1':
+			switch_render_mode(RENDER_STANDARD);
+			break;
+		case '2':
+			switch_render_mode(RENDER_APERTURE);
 			break;
 		case '+':
 			camera->zoom_in();
@@ -305,11 +369,23 @@ void keyboardFunc(unsigned char k, int, int)
 		case '-':
 			camera->zoom_out();
 			break;
-		case '1':
+		case '.':
 			camera->increase_aperture();
 			break;
-		case '2':
+		case ',':
 			camera->decrease_aperture();
+			break;
+		case 'h':
+			haze = !haze;
+			if (haze) {
+				world->set_haze_attenuation(3);
+				world->set_haze_strength(0.001);
+				world->set_haze_distance(500);
+			}
+			else {
+				world->set_haze_attenuation(0);
+				world->set_haze_distance(1.0e6f);
+			}
 			break;
 
     }
@@ -513,7 +589,7 @@ void initOpenGLBuffers(int w, int h)
     // load shader program
     gl_Shader = compileASMShader(GL_FRAGMENT_PROGRAM_ARB, shader_code);
 
-	reset_image();
+	reset_image(w, h );
 }
 
 void wheelFunc(int wheel, int direction, int x, int y) {
@@ -801,11 +877,8 @@ int main(int argc, char **argv)
     pArgc = &argc;
     pArgv = argv;
 
-#if defined(__linux__)
-    setenv ("DISPLAY", ":0", 0);
-#endif
 
-    printf("[%s] - Starting...\n", sSDKsample);
+   
 
     // parse command line arguments
     if (checkCmdLineFlag(argc, (const char **)argv, "help"))
@@ -816,49 +889,9 @@ int main(int argc, char **argv)
 
     int mode = 0;
 
-   
-
-    //if (checkCmdLineFlag(argc, (const char **)argv, "file"))
-    //{
-    //    fpsLimit = frameCheckNumber;
-
-    //    // use command-line specified CUDA device, otherwise use device with highest Gflops/s
-    //    findCudaDevice(argc, (const char **)argv); // no OpenGL usage
-
-    //    // We run the Automated Testing code path
-    //    runSingleTest(argc, argv);
-
-    //    exit(g_TotalErrors == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
-    //}
-    //else if (checkCmdLineFlag(argc, (const char **)argv, "benchmark"))
-    //{
-    //    //run benchmark
-    //    // use command-line specified CUDA device, otherwise use device with highest Gflops/s
-    //    chooseCudaDevice(argc, (const char **)argv, false); // no OpenGL usage
-
-    //    // We run the Automated Performance Test
-    //    runBenchmark(argc, argv);
-
-    //    exit(g_TotalErrors == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
-    //}
-    //// use command-line specified CUDA device, otherwise use device with highest Gflops/s
-    //else if (checkCmdLineFlag(argc, (const char **)argv, "device"))
-    //{
-    //    printf("[%s]\n", argv[0]);
-    //    printf("   Does not explicitly support -device=n in OpenGL mode\n");
-    //    printf("   To use -device=n, the sample must be running w/o OpenGL\n\n");
-    //    printf(" > %s -device=n -file=<image_name>.ppm\n", argv[0]);
-    //    printf("exiting...\n");
-    //    exit(EXIT_SUCCESS);
-    //}
-
-    // use command-line specified CUDA device, otherwise use device with highest Gflops/s
+ 
     chooseCudaDevice(argc, (const char **)argv, true); // yes to OpenGL usage
 
-    // Otherwise it succeeds, we will continue to run this sample
-
-    // Initialize OpenGL context first before the CUDA context is created.  This is needed
-    // to achieve optimal performance with OpenGL/CUDA interop.
     initGL(&argc, argv);
     initOpenGLBuffers(imageW, imageH);
     initData(argc, argv);
@@ -886,8 +919,10 @@ int main(int argc, char **argv)
     //printf("Press [q] to exit\n");
     //printf("\n");
 
-    sdkCreateTimer(&hTimer);
-    sdkStartTimer(&hTimer);
+	sdkCreateTimer(&hTimer);
+	sdkStartTimer(&hTimer);
+	sdkCreateTimer(&myTimer);
+	sdkStartTimer(&myTimer);
 
 #if defined (__APPLE__) || defined(MACOSX)
     atexit(cleanup);

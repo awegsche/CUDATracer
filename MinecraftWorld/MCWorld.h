@@ -36,6 +36,12 @@ struct world_struct {
 	float4 light_col;
 	float light_intensity;
 
+	// haze
+	float haze_dist;
+	float haze_strength;
+	int haze_attenuation;
+
+	// 5. sampler
 	sampler_struct* smplr;
 	int num_samples;
 };
@@ -59,5 +65,11 @@ public:
 	void addRegion(const int index, const int X, const int Z, NBTTag *root);
 
 	world_struct* get_device_world() const;
+
+	int get_num_samples();
+
+	void set_haze_distance(float f);
+	void set_haze_attenuation(int power);
+	void set_haze_strength(float f);
 };
 
