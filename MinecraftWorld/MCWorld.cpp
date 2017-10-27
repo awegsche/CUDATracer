@@ -74,7 +74,7 @@ MCWorld::MCWorld()
 
 	_make_block(
 		device_world->blocks[BlockInfo::LeavesOak],
-		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "leaves_oak.png", .0f, 1.0f, .0f)),
+		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "leaves_oak.png", .0f, 1.0f, .0f), true),
 		SOLIDBLOCK
 	);
 	_make_block(
@@ -100,6 +100,18 @@ MCWorld::MCWorld()
 	_make_block(
 		device_world->blocks[BlockInfo::Sand],
 		m->create_matte(DEFAULT_KA, 1.2f, m->load_texture(texturepath + "sand.png")),
+		SOLIDBLOCK
+	);
+	_make_block(
+		device_world->blocks[BlockInfo::Dirt],
+		m->create_matte(DEFAULT_KA, 1.2f, m->load_texture(texturepath + "dirt.png")),
+		SOLIDBLOCK
+	);
+
+	_make_block(
+		device_world->blocks[BlockInfo::LogOak],
+		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "log_oak_top.png", .0f, 1.0f, .0f)),
+		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "log_oak.png")),
 		SOLIDBLOCK
 	);
 

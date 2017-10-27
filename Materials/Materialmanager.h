@@ -18,7 +18,7 @@ struct material_params {
 	float ka, kd, kr, exp;
 	material_type typ;
 	texture_pos position;
-
+	bool transparent;
 };
 
 // Data oriented Material
@@ -58,7 +58,7 @@ public:
 	texture_pos create_constantcolor(const float r, const float g, const float b);
 
 	// creates a new Matte material
-	material_pos create_matte(const float k_ambient, const float k_diffuse, texture_pos position);
+	material_pos create_matte(const float k_ambient, const float k_diffuse, texture_pos position, bool transparent = false);
 
 	// Copy all the data to device memory, if this step is skipped, nothing will work
 	void copy_to_device_memory();

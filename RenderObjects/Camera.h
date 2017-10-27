@@ -28,7 +28,7 @@ public:
 	~Camera();
 
 
-	void render(float4* colors, const int w, const int h) const;
+	void render(float4* colors, const int w, const int h, const float time) const;
 
 	void expose(float4* colors, const int w, const int h, const int sample_count) const;
 

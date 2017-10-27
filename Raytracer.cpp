@@ -160,7 +160,7 @@ void renderImage()
 		do {
 
 			sample_count += world->get_num_samples();
-			camera->render(film, imageW, imageH);
+			camera->render(film, imageW, imageH, t0);
 			err = cudaDeviceSynchronize();
 
 		} while ((myTimer->getTime() - t0) < 33.3f);  // 30 fps

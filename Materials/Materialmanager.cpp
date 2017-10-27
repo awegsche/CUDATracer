@@ -73,7 +73,7 @@ texture_pos MaterialManager::create_constantcolor(const float r, const float g, 
 	return current_texture - 1;
 }
 
-material_pos MaterialManager::create_matte(const float k_ambient, const float k_diffuse, texture_pos position)
+material_pos MaterialManager::create_matte(const float k_ambient, const float k_diffuse, texture_pos position, bool transparent)
 {
 	material_params m;
 	m.ka = k_ambient;
@@ -81,6 +81,7 @@ material_pos MaterialManager::create_matte(const float k_ambient, const float k_
 	m.kr = 0.0f;
 	m.position = position;
 	m.typ = material_type::MATTE;
+	m.transparent = transparent;
 	
 	material_pos p = (material_pos)host_materials.size();
 	host_materials.push_back(m);

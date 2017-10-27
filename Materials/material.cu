@@ -16,7 +16,7 @@ __device__ float4 get_color(float4* texels, texture_pos* positions, uint2* dimen
 	return texels[index];
 }
 
-__device__ void shade(ShadeRec &sr, world_struct *world, const int seed, bool hitt, float4 &L, float4 &texel_color) {
+__device__ bool shade(ShadeRec &sr, world_struct *world, const int seed, bool hitt, float4 &L, float4 &texel_color) {
 
 	if (!hitt) return;
 
@@ -24,6 +24,9 @@ __device__ void shade(ShadeRec &sr, world_struct *world, const int seed, bool hi
 
 	material_params material = world->materials[sr.material];
 	texel_color = get_color(world->texels, world->positions, world->dimensions, material.position, sr.u, sr.v);
+
+	if (material.transparent && texel_color.w < 1.0f)
+		return false;
 
 	// ==== Simple Ambient ======
 	// lambertian rho
@@ -74,6 +77,7 @@ __device__ void shade(ShadeRec &sr, world_struct *world, const int seed, bool hi
 			L = tr * L + ((real)1.0 - tr) * sr.w->tracer_ptr->trace_ray(second_ray, sr.depth + 1);
 	}*/
 
+	return true;
 	
 }
 

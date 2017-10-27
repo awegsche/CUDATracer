@@ -12,7 +12,7 @@ __device__ bool world_hit(
 	chunk_struct** cells, ShadeRec &sr, block_struct *blocks) */
 {
 	//Material* mat_ptr = sr.material_ptr;
-	t = kHUGEVALUE;
+	//t = kHUGEVALUE;
 
 	float3 p0 = world->bb_p0;
 	float3 p1 = world->bb_p1;

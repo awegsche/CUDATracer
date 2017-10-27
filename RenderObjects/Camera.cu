@@ -15,7 +15,8 @@
 #include <device_functions.h>
 #include <device_launch_parameters.h>
 
-#define D_FACT 1.1f
+#define D_FACT 1.05f
+#define MOVE_VALUE 10.0f
 
 __device__ float4 trace_ray(
 	Ray &ray, world_struct *world, const int seed) 
@@ -25,13 +26,19 @@ __device__ float4 trace_ray(
 	ShadeRec sr;
 
 	float sky = clamp(ray.d.y * 2.5f, 0.0f, .8f);
-	float4 sky_color = rgbcolor(.6f - sky, .9f - sky, 1.0f - sky * 0.3);
+	float4 sky_color = rgbcolor(.8f - sky, .9f - sky, 1.0f - sky * 0.3);
 	float4 L = sky_color;
 	float4 texel_color;
 
 	bool hit = world_hit(ray, t, world, sr);
 	
-	shade(sr, world, seed, hit, L, texel_color);// -rgbcolor(t / 1000.f, 0.f, 0.f);
+	while(!shade(sr, world, seed, hit, L, texel_color) && hit) // if transparent block, continue until non-transparent surface is hit 
+	{
+		ray.o = sr.hitPoint + kEPSILON * ray.d;
+		t = kHUGEVALUE;
+		hit = world_hit(ray, t, world, sr);
+	}
+	
 	__syncthreads();
 	shade_shadow(world, sr, seed, L, texel_color, hit);
 
@@ -161,10 +168,12 @@ Camera::~Camera()
 {
 }
 
-void Camera::render(float4* colors, const int width, const int height) const
+void Camera::render(float4* colors, const int width, const int height, const float time) const
 {
 	dim3 threads(BLOCKDIM_X, BLOCKDIM_Y);
 	dim3 num_blocks = dim3(width / BLOCKDIM_X, height / BLOCKDIM_Y);
+
+	world->light_dir = _normalize(make_float3(world->light_dir.x, world->light_dir.y, sin(time * 1.0e-4f)));
 
 
 
