@@ -9,8 +9,8 @@ struct Ray {
 	float3 o, d;
 };
 
-#define BLOCKDIM_X 16
-#define BLOCKDIM_Y 16
+#define BLOCKDIM_X 32
+#define BLOCKDIM_Y 32
 
 __host__ __device__  inline float3 _make_float3(const float x, const float y, const float z) {
 	float3 f;

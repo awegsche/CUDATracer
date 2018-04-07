@@ -24,7 +24,7 @@ __device__ rgbcol shade(ShadeRec &sr, world_struct *world, const float3 &sp, boo
 
 	if (!hitt) return;
 
-	float3 wo = -sr.ray.d;
+	//float3 wo = -sr.ray.d;
 
 	material_params material = world->materials[sr.material];
 	texel_color = get_color(world->texels, world->positions, world->dimensions, material.position, sr.u, sr.v);
@@ -65,7 +65,6 @@ __device__ void shade_shadow(world_struct *world, ShadeRec &sr, const float3 &sp
 	
 	// ==== sun: ================
 
-	material_params material = world->materials[sr.material];
 
 
 	float ndotwi = -sr.normal * world->light_dir;
@@ -78,8 +77,10 @@ __device__ void shade_shadow(world_struct *world, ShadeRec &sr, const float3 &sp
 		ShadeRec dummy;
 		bool hit = world_hit(shadowray, t, world, dummy);
 
-		if (!hit)
+		if (!hit) {
+			material_params material = world->materials[sr.material];
 			L = add_colors(L, scale_color(rgbcolor(texel_color), material.kd * invPI * world->light_intensity * ndotwi));
+		}
 	}
 
 

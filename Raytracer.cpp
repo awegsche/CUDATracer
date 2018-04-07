@@ -20,7 +20,7 @@
 
 const int VERSION = 1;
 const int SUBVERSION = 0;
-const int BUILDN = 16;
+const int BUILDN = 28;
 
 // OpenGL Graphics includes
 #include <helper_gl.h>
@@ -854,7 +854,8 @@ void initWorld() {
 
 	world = new MCWorld();
 
-	QString folder = "C:/Users/Andreas.DESKTOP-D87O57E/AppData/Roaming/.minecraft/saves/Alkas/region";
+	//QString folder = "C:/Users/Andreas.DESKTOP-D87O57E/AppData/Roaming/.minecraft/saves/Alkas/region";
+	QString folder = "G:\\Data\\Dropbox\\Dropbox\\Minecraft Server\\world\\region";
 
 	NBTFileReader* reader = new NBTFileReader(folder, 1, 0);
 	reader->Load(world);
@@ -863,6 +864,10 @@ void initWorld() {
 	reader = new NBTFileReader(folder, 0, 0);
 	reader->Load(world);
 	reader = new NBTFileReader(folder, 0, 1);
+	reader->Load(world);
+	reader = new NBTFileReader(folder, 1, 1);
+	reader->Load(world);
+	reader = new NBTFileReader(folder, 2, 1);
 	reader->Load(world);
 #endif
 
