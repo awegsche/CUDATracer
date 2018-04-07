@@ -23,7 +23,7 @@ struct world_struct {
 	float3 bb_p0, bb_p1;
 
 	// 2. materials and textures
-	float4* texels;
+	rgbacol* texels;
 	texture_pos* positions;
 	uint2* dimensions;
 	material_params *materials;
@@ -33,7 +33,7 @@ struct world_struct {
 
 	// 4. lights
 	float3 light_dir;
-	float4 light_col;
+	rgbcol light_col;
 	float light_intensity;
 
 	// haze
@@ -44,6 +44,7 @@ struct world_struct {
 	// 5. sampler
 	sampler_struct* smplr;
 	int num_samples;
+	int max_depth;
 };
 
 // Data oriented Minecraft World

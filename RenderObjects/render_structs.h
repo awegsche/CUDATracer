@@ -9,17 +9,6 @@ struct Ray {
 	float3 o, d;
 };
 
-struct ShadeRec {
-	float3 hitPoint;
-	float3 normal;
-	int hdir;
-	float u;
-	float v;
-	float t;
-	Ray ray;
-	material_pos material;
-};
-
 #define BLOCKDIM_X 16
 #define BLOCKDIM_Y 16
 
@@ -128,3 +117,19 @@ __device__ inline bool _inside_bb(const float3 &p, const float3 &bb_p0, const fl
 		&& p.y > bb_p0.y && p.y < bb_p1.y
 		&& p.z > bb_p0.z && p.z < bb_p1.z;
 }
+
+
+struct ShadeRec {
+	float3 normal;
+	int hdir;
+	float u;
+	float v;
+	float t;
+	Ray ray;
+	material_pos material;
+
+	__device__ float3 hitPoint() {
+		return ray.o + ray.d * t;
+	}
+
+};

@@ -29,14 +29,18 @@ public:
 		Dirt = 3,
 		CobbleStone = 4,
 		OakWoodPlank = 5,
+		Bedrock = 7,
 		WaterFlow = 8,
 		WaterStill = 9,
 		Sand = 12,
+		Gravel = 13,
 		LogOak = 17,
 		LeavesOak = 18,
+		Glass = 20,
 		Grass = 31,
 		Dandelion = 37,
 		Poppy = 38,
+		DoubleStoneSlab = 43,
 		FarmLand = 60,
 		SugarCanes = 83
 	};

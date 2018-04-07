@@ -5,7 +5,11 @@
 #include "MinecraftWorld/MCWorld.cu"
 #include "Samplers/sampler.h"
 
-__device__ float4 get_color(float4* texels, texture_pos* positions, uint2* dimensions,
+// forward definition of trac_ray
+__device__ rgbcol trace_ray(
+	Ray &ray, world_struct *world, const int seed, int depth);
+
+__device__ rgbacol get_color(rgbacol* texels, texture_pos* positions, uint2* dimensions,
 	texture_pos pos, float u, float v) 
 {
 	uint2 dim = dimensions[pos];
@@ -16,7 +20,7 @@ __device__ float4 get_color(float4* texels, texture_pos* positions, uint2* dimen
 	return texels[index];
 }
 
-__device__ bool shade(ShadeRec &sr, world_struct *world, const int seed, bool hitt, float4 &L, float4 &texel_color) {
+__device__ rgbcol shade(ShadeRec &sr, world_struct *world, const int seed, bool &hitt, rgbacol &texel_color) {
 
 	if (!hitt) return;
 
@@ -25,12 +29,16 @@ __device__ bool shade(ShadeRec &sr, world_struct *world, const int seed, bool hi
 	material_params material = world->materials[sr.material];
 	texel_color = get_color(world->texels, world->positions, world->dimensions, material.position, sr.u, sr.v);
 
-	if (material.transparent && texel_color.w < 1.0f)
-		return false;
+	if ((material.typ & TRANSP) && texel_color.w < 1.0f)
+	{
+		hitt = false;
+		return rgbcolor(0.0f);
+	}
+	hitt = true;
 
 	// ==== Simple Ambient ======
 	// lambertian rho
-	L = scale_color(texel_color, material.ka * 0.2);
+	rgbcol L = rgbcolor(texel_color) * material.ka * 0.2f;
 	float3 u, v, w;
 
 	w = sr.normal;
@@ -39,49 +47,20 @@ __device__ bool shade(ShadeRec &sr, world_struct *world, const int seed, bool hi
 	float3 sp = sample_hemisphere(world->smplr, seed);
 
 	Ray shadowray;
-	shadowray.o = sr.hitPoint + kEPSILON * sr.normal;
+	shadowray.o = sr.hitPoint() + kEPSILON * sr.normal;
 	shadowray.d = sp.x * u + sp.y * v + sp.z * w;
 	ShadeRec dum;
 	float tshadow = kHUGEVALUE;
 	if (!world_hit(shadowray, tshadow, world, dum))
-		L = scale_color(texel_color, material.ka * 1.2);
+		L = L + rgbcolor(texel_color) * material.ka * 1.2f;
 
-	
-	/*int numLights = sr.w->lights.size();
+	//L = rgbcolor(sr.u, sr.v, 0.0f);
 
-	for (int j = 0; j < numLights; j++) {
-		Vector wi = sr.w->lights[j]->get_direction(sr);
-		real ndotwi = sr.normal * wi;
-
-
-
-		if (ndotwi > 0.0) {
-			bool in_shadow = false;
-			if (sr.w->lights[j]->casts_shadows())
-			{
-				Ray shadowray(sr.local_hit_point + kEpsilon * sr.normal, wi);
-				in_shadow = sr.w->lights[j]->in_shadow(shadowray, sr);
-			}
-
-			if (!in_shadow)
-				L += diffuse_brdf->f(sr, wo, wi) * sr.w->lights[j]->L(sr) * ndotwi;
-		}
-	}
-
-
-	if (has_transparency) {
-		Ray second_ray(sr.local_hit_point + kEpsilon * sr.ray.d, sr.ray.d);
-
-		real tr = diffuse_brdf->transparency(sr);
-		if (tr < 1.0)
-			L = tr * L + ((real)1.0 - tr) * sr.w->tracer_ptr->trace_ray(second_ray, sr.depth + 1);
-	}*/
-
-	return true;
+	return L;
 	
 }
 
-__device__ void shade_shadow(world_struct *world, ShadeRec &sr, int seed, float4 &L, float4 &texel_color, bool hitt) {
+__device__ void shade_shadow(world_struct *world, ShadeRec &sr, int seed, rgbcol &L, rgbacol &texel_color, bool hitt) {
 	if (!hitt) return;
 	
 	// ==== sun: ================
@@ -93,15 +72,34 @@ __device__ void shade_shadow(world_struct *world, ShadeRec &sr, int seed, float4
 
 	if (ndotwi > 0.f) {
 		Ray shadowray;
-		shadowray.o = sr.hitPoint + kEPSILON * sr.normal;
+		shadowray.o = sr.hitPoint() + kEPSILON * sr.normal;
 		shadowray.d = world->light_dir;
 		float t = kHUGEVALUE;
 		ShadeRec dummy;
 		bool hit = world_hit(shadowray, t, world, dummy);
 
 		if (!hit)
-			L = add_colors(L, scale_color(texel_color, material.kd * invPI * world->light_intensity * ndotwi));
+			L = add_colors(L, scale_color(rgbcolor(texel_color), material.kd * invPI * world->light_intensity * ndotwi));
 	}
 
 
+}
+
+__device__ bool shade_reflection(world_struct *world, ShadeRec &sr, float3 &wo, float3 &wi, rgbcol &L, int seed, int depth) {
+
+	material_params material = world->materials[sr.material];
+
+	if (!material.typ & REFL) return false;
+
+	float ndotwo = sr.normal * wo;
+	wi = -wo + 2.0 * sr.normal * ndotwo;
+
+
+	Ray reflected_ray;
+	reflected_ray.d = wi;
+	reflected_ray.o = sr.hitPoint() + kEPSILON * wi;
+
+	L = add_colors(L, scale_color(trace_ray(reflected_ray, world, seed, depth + 1), material.kr / (sr.normal * wi)));
+
+	return true;
 }

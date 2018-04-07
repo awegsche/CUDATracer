@@ -55,6 +55,7 @@
 #include "MinecraftWorld/MCWorld.h"
 #include "NBT/nbtfilereader.h"
 #include "RenderObjects/Camera.h"
+#include "Materials/RGBColors.h"
 
 MCWorld* world;
 Camera* camera;
@@ -68,7 +69,7 @@ uchar4 *h_Src = 0;
 
 // Destination image on the GPU side
 uchar4 *d_dst = NULL;
-float4 *film = NULL;
+rgbcol *film = NULL;
 
 //Original image width and height
 int imageW = 640, imageH = 480;
@@ -138,8 +139,8 @@ float start_btime;
 void reset_image(int w, int h) {
 	if (film)
 		cudaFree(film);
-	cudaMalloc(&film, sizeof(float4) * w * h);
-	cudaMemset(film, 0, sizeof(float4) * w * h);
+	cudaMalloc(&film, sizeof(rgbcol) * w * h);
+	cudaMemset(film, 0, sizeof(rgbcol) * w * h);
 	sample_count = 0;
 	start_btime = sdkGetTimerValue(&myTimer);
 }

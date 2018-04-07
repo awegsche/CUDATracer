@@ -12,6 +12,8 @@
 #include "Materials/RGBColors.h"
 #include "Samplers/sampler.h"
 
+#include "RenderObjects/render_structs.h"
+
 
 #if !defined WIN64 && !defined WIN32
 const QString texturepath = "/home/awegsche/Minecraft/minecraft/textures/blocks/";
@@ -78,8 +80,18 @@ MCWorld::MCWorld()
 		SOLIDBLOCK
 	);
 	_make_block(
+		device_world->blocks[BlockInfo::Glass],
+		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "glass.png", .0f, 1.0f, .0f), true),
+		SOLIDBLOCK
+	);
+	_make_block(
 		device_world->blocks[BlockInfo::Stone],
 		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "stone.png")),
+		SOLIDBLOCK
+	);
+	_make_block(
+		device_world->blocks[BlockInfo::DoubleStoneSlab],
+		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "double_stone_slab.png")),
 		SOLIDBLOCK
 	);
 	_make_block(
@@ -94,7 +106,7 @@ MCWorld::MCWorld()
 	);
 	_make_block(
 		device_world->blocks[BlockInfo::WaterStill],
-		m->create_matte(DEFAULT_KA, DEFAULT_KD, m->load_texture(texturepath + "water_still.png")),
+		m->create_reflective(DEFAULT_KA, DEFAULT_KD, 1.0f, m->load_texture(texturepath + "water_still.png")),
 		SOLIDBLOCK
 	);
 	_make_block(
@@ -105,6 +117,16 @@ MCWorld::MCWorld()
 	_make_block(
 		device_world->blocks[BlockInfo::Dirt],
 		m->create_matte(DEFAULT_KA, 1.2f, m->load_texture(texturepath + "dirt.png")),
+		SOLIDBLOCK
+	);
+	_make_block(
+		device_world->blocks[BlockInfo::Bedrock],
+		m->create_matte(DEFAULT_KA, 1.2f, m->load_texture(texturepath + "bedrock.png")),
+		SOLIDBLOCK
+	);
+	_make_block(
+		device_world->blocks[BlockInfo::Gravel],
+		m->create_matte(DEFAULT_KA, 1.2f, m->load_texture(texturepath + "gravel.png")),
 		SOLIDBLOCK
 	);
 
@@ -141,7 +163,7 @@ MCWorld::MCWorld()
 	set_haze_attenuation(0);
 	set_haze_strength(0.01f);
 
-	
+	device_world->max_depth = 4;
 }
 
 

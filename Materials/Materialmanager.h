@@ -3,22 +3,22 @@
 #include <qstring.h>
 #include <vector>
 #include <QtGui/qimage.h>
+#include "RGBColors.h"
 
 typedef unsigned int texture_pos;
 typedef unsigned int material_pos;
 
-enum material_type {
-	PHONG	= 0x001,
-	MATTE	= 0x002,
-	REFL	= 0x003,
-	TRANSP	= 0x010
-};
+
+#define	PHONG	 0x001
+#define	MATTE	 0x002
+#define	REFL	 0x003
+#define	TRANSP	 0x010
+
 
 struct material_params {
 	float ka, kd, kr, exp;
-	material_type typ;
+	int typ;
 	texture_pos position;
-	bool transparent;
 };
 
 // Data oriented Material
@@ -38,7 +38,7 @@ public:
 
 private:
 	//======== host memory ============================
-	std::vector<float4> host_texels;
+	std::vector<rgbacol> host_texels;
 	std::vector<uint2> host_dims;
 	std::vector<texture_pos> host_positions;
 	//texture_pos size;
@@ -59,6 +59,9 @@ public:
 
 	// creates a new Matte material
 	material_pos create_matte(const float k_ambient, const float k_diffuse, texture_pos position, bool transparent = false);
+	
+	// creates a new Reflective material
+	material_pos create_reflective(const float k_ambient, const float k_diffuse, const float k_reflective, texture_pos position);
 
 	// Copy all the data to device memory, if this step is skipped, nothing will work
 	void copy_to_device_memory();

@@ -1,4 +1,5 @@
 ﻿<Model DefinitionId="3a3ca3f4-7ba7-4c09-a182-6ba59bf12599" DisplayName="Analysis Activity" xmlns="clr-namespace:Ark.PropertyModel;assembly=Ark">
+    <Property Name="ActivityType" Value="Profile" />
     <Property Name="Application" Value="G:\Data\bin\win64\Release\Raytracer.exe" />
     <Property Name="EnableCudaApiContextAttachDetach" Value="True" />
     <Property Name="EnableCudaApiContextManagement" Value="True" />
@@ -118,6 +119,10 @@
     <Property Name="EnableToolsExtPushPopRangeTrace" Value="True" />
     <Property Name="EnableToolsExtResourceNaming" Value="True" />
     <Property Name="EnableToolsExtStartEndRangeTrace" Value="True" />
+    <Property Name="ExperimentsPresetConfiguration" Value="AllKernel" />
     <Property Name="ExtensionsToSynchronize" Value="*;" />
+    <Property Name="KernelsToProfile" Value="render_kernel" />
+    <Property Name="ProfileOptionPrintProgress" Value="False" />
+    <Property Name="StartTrigger" Value="Manually" />
     <Property Name="WorkingDirectory" Value="G:\Data\Qt\CUDATracer\" />
 </Model>

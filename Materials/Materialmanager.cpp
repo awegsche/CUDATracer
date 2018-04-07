@@ -37,7 +37,7 @@ texture_pos MaterialManager::load_texture(const QString & filename,
 			for (int y = 0; y < dims.y; y++)
 			{
 				QRgb col = i.pixel(x, y);
-				float4 color = Qrgb_to_float4(col);
+				rgbacol color = Qrgb_to_float4(col);
 				color.x *= r;
 				color.y *= g;
 				color.z *= b;
@@ -48,7 +48,7 @@ texture_pos MaterialManager::load_texture(const QString & filename,
 	else
 	{
 		
-		host_texels.push_back(rgbcolor(1.0f, .0f, 1.f));
+		host_texels.push_back(rgbacolor(1.0f, .0f, 1.f));
 	}
 
 
@@ -60,7 +60,7 @@ texture_pos MaterialManager::load_texture(const QString & filename,
 
 texture_pos MaterialManager::create_constantcolor(const float r, const float g, const float b)
 {
-	host_texels.push_back(rgbcolor(r, g, b));
+	host_texels.push_back(rgbacolor(r, g, b));
 	uint2 dims;
 	dims.x = 1;
 	dims.y = 1;
@@ -80,9 +80,24 @@ material_pos MaterialManager::create_matte(const float k_ambient, const float k_
 	m.kd = k_diffuse;
 	m.kr = 0.0f;
 	m.position = position;
-	m.typ = material_type::MATTE;
-	m.transparent = transparent;
+	m.typ = MATTE | TRANSP;
 	
+	
+	material_pos p = (material_pos)host_materials.size();
+	host_materials.push_back(m);
+	return p;
+}
+
+material_pos MaterialManager::create_reflective(const float k_ambient, const float k_diffuse, const float k_reflective, texture_pos position)
+{
+	material_params m;
+	m.ka = k_ambient;
+	m.kd = k_diffuse;
+	m.kr = k_reflective;
+	m.position = position;
+	m.typ = PHONG | REFL;
+
+
 	material_pos p = (material_pos)host_materials.size();
 	host_materials.push_back(m);
 	return p;
@@ -102,12 +117,12 @@ void MaterialManager::copy_to_device_memory()
 	int dims_size = sizeof(uint2) *  host_dims.size();
 	int materials_size = sizeof(material_params) * host_materials.size();
 
-	cudaMalloc(&texels, sizeof(float4) * host_texels.size());
+	cudaMalloc(&texels, sizeof(rgbacol) * host_texels.size());
 	cudaMalloc(&positions, pos_size);
 	cudaMalloc(&dimensions, dims_size);
 	cudaMalloc(&materials, materials_size);
 
-	cudaMemcpy(texels, host_texels.data(), sizeof(float4) * host_texels.size(), cudaMemcpyKind::cudaMemcpyHostToDevice);
+	cudaMemcpy(texels, host_texels.data(), sizeof(rgbacol) * host_texels.size(), cudaMemcpyKind::cudaMemcpyHostToDevice);
 	cudaMemcpy(positions, host_positions.data(), pos_size, cudaMemcpyKind::cudaMemcpyHostToDevice);
 	cudaMemcpy(dimensions, host_dims.data(), dims_size, cudaMemcpyKind::cudaMemcpyHostToDevice);
 	cudaMemcpy(materials, host_materials.data(), materials_size, cudaMemcpyKind::cudaMemcpyHostToDevice);

@@ -14,42 +14,44 @@ __device__ bool blockhit(Ray ray, ShadeRec &sr, block_struct *blocks, uint block
 	switch (B.hittype)
 	{
 	case SOLIDBLOCK:
-		sr.hitPoint = ray.o + ray.d * t;
+		sr.ray.o = ray.o;
+		sr.ray.d = ray.d;
+		sr.t = t;
 
 		switch (sr.hdir) {
 		case TOP:
-			sr.u = fmod(sr.hitPoint.x, BLOCKLENGTH);
-			sr.v = fmod(sr.hitPoint.z, BLOCKLENGTH);
+			sr.u = fmod(sr.hitPoint().x, BLOCKLENGTH);
+			sr.v = fmod(sr.hitPoint().z, BLOCKLENGTH);
 			sr.material = B.material_top;
 			break;
 		case BOTTOM:
-			sr.u = fmod(sr.hitPoint.x, BLOCKLENGTH);
-			sr.v = fmod(sr.hitPoint.z, BLOCKLENGTH);
+			sr.u = fmod(sr.hitPoint().x, BLOCKLENGTH);
+			sr.v = fmod(sr.hitPoint().z, BLOCKLENGTH);
 			sr.material = B.material_bottom;
 			break;
 
 		case EAST:
 
-			sr.u = fmod(sr.hitPoint.x, BLOCKLENGTH);
-			sr.v = fmod(sr.hitPoint.y, BLOCKLENGTH);
+			sr.u = fmod(sr.hitPoint().x, BLOCKLENGTH);
+			sr.v = fmod(sr.hitPoint().y, BLOCKLENGTH);
 			sr.material = B.material_side;
 			break;
 
 		case WEST:
-			sr.u = fmod(sr.hitPoint.x, BLOCKLENGTH);
-			sr.v = fmod(sr.hitPoint.y, BLOCKLENGTH);
+			sr.u = fmod(sr.hitPoint().x, BLOCKLENGTH);
+			sr.v = fmod(sr.hitPoint().y, BLOCKLENGTH);
 			sr.material = B.material_side;
 			break;
 
 		case NORTH:
-			sr.u = fmod(sr.hitPoint.z, BLOCKLENGTH);
-			sr.v = fmod(sr.hitPoint.y, BLOCKLENGTH);
+			sr.u = fmod(sr.hitPoint().z, BLOCKLENGTH);
+			sr.v = fmod(sr.hitPoint().y, BLOCKLENGTH);
 			sr.material = B.material_side;
 			break;
 
 		case SOUTH:
-			sr.u = fmod(sr.hitPoint.z, BLOCKLENGTH);
-			sr.v = fmod(sr.hitPoint.y, BLOCKLENGTH);
+			sr.u = fmod(sr.hitPoint().z, BLOCKLENGTH);
+			sr.v = fmod(sr.hitPoint().y, BLOCKLENGTH);
 			sr.material = B.material_side;
 			break;
 		}
@@ -57,10 +59,6 @@ __device__ bool blockhit(Ray ray, ShadeRec &sr, block_struct *blocks, uint block
 		if (sr.u < 0) sr.u = -sr.u;
 		if (sr.v < 0) sr.v = -sr.v;
 		sr.v = 1.0 - sr.v;
-
-		sr.ray.o = ray.o;
-		sr.ray.d = ray.d;
-		sr.t = t;
 
 		return true;
 	}

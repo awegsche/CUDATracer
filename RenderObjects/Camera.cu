@@ -18,29 +18,42 @@
 #define D_FACT 1.05f
 #define MOVE_VALUE 10.0f
 
-__device__ float4 trace_ray(
-	Ray &ray, world_struct *world, const int seed) 
+__device__ float3 trace_ray(
+	Ray &ray, world_struct *world, const int seed, int depth = 1) 
 {
 	float t = kHUGEVALUE;
-	chunk_struct** cells = world->chunks;
 	ShadeRec sr;
 
-	float sky = clamp(ray.d.y * 2.5f, 0.0f, .8f);
-	float4 sky_color = rgbcolor(.8f - sky, .9f - sky, 1.0f - sky * 0.3);
-	float4 L = sky_color;
-	float4 texel_color;
+	float sky = clamp(ray.d.y * 2.0f, 0.0f, .8f);
+	//float3 sky_color = rgbcolor(.8f - sky, .9f - sky, 1.0f - sky * 0.3);
+	//float3 L = rgbcolor(.8f - sky, .9f - sky, 1.0f - sky * 0.3);
+	rgbcol L;
+	rgbacol texel_color;
 
 	bool hit = world_hit(ray, t, world, sr);
+
+	if (hit)
+		L = shade(sr, world, seed, hit, texel_color);
+	else
+		depth = 10000;
 	
-	while(!shade(sr, world, seed, hit, L, texel_color) && hit) // if transparent block, continue until non-transparent surface is hit 
+	while(!hit && depth < 3) // if transparent block, continue until non-transparent surface is hit 
 	{
-		ray.o = sr.hitPoint + kEPSILON * ray.d;
+		depth++;
+		ray.o = sr.hitPoint() + kEPSILON * ray.d;
 		t = kHUGEVALUE;
 		hit = world_hit(ray, t, world, sr);
+		L += shade(sr, world, seed, hit, texel_color);
 	}
 	
-	__syncthreads();
+	//__syncthreads();
 	shade_shadow(world, sr, seed, L, texel_color, hit);
+	//__syncthreads();
+	if (depth < 3)
+	{
+		float3 wi;
+		shade_reflection(world, sr, -sr.ray.d, wi, L, seed, depth +1);
+	}
 
 	if (t > world->haze_dist)
 	{
@@ -48,7 +61,7 @@ __device__ float4 trace_ray(
 
 		for (int i = 0; i < world->haze_attenuation; i++)
 			factor *= factor;
-		L = add_colors(scale_color(L, factor), scale_color(sky_color, 1.0f - factor));
+		L = add_colors(scale_color(L, factor), scale_color(rgbcolor(.8f - sky, .9f - sky, 1.0f - sky * 0.3), 1.0f - factor));
 	}
 
 	return L;
@@ -56,13 +69,15 @@ __device__ float4 trace_ray(
 }
 
 // The kernel to render with the Thinlens camera
-__global__ void render_kernel(
-	float4 *dst, const int hres, const int vres, const int num_samples, const int seed, const float s,
+__global__ void
+//__launch_bounds__(1024, 16)
+render_kernel(
+	float3 *dst, const int hres, const int vres, const int num_samples, const int seed, const float s,
 	float3 eye, float3 u, float3 v, float3 w, float aperture, float d, world_struct* world)
 {
 	Ray ray;
 
-	float2 sp;      // Sample point in [0,1]x[0,1]
+	//float2 sp;      // Sample point in [0,1]x[0,1]
 	float2 pp;      // Sample point on a pixel
 	float2 ap;     // Sample point on aperture;
 	
@@ -72,16 +87,16 @@ __global__ void render_kernel(
 
 	ap.x = 0;
 	ap.y = 0;
-	sp.x = 0;
-	sp.y = 0;
+	//sp.x = 0;
+	//sp.y = 0;
 
 	int depth = 0;
-	float4 L = rgbcolor(0,0,0);
+	float3 L = rgbcolor(0,0,0);
 
 
 
 	for (int j = 0; j < num_samples; j++) {
-		sp = sample_square(world->smplr, seed + index + j);
+		float2 sp = sample_square(world->smplr, seed + index + j);
 
 		pp.x = s * (ix - 0.5 * hres + sp.x);
 		pp.y = s * (iy - 0.5 * vres + sp.y);
@@ -100,7 +115,7 @@ __global__ void render_kernel(
 
 }
 
-__global__ void finish_kernel(uchar4 *dst, float4 *colors, const int hres, const int vres, const int num_samples)
+__global__ void finish_kernel(uchar4 *dst, float3 *colors, const int hres, const int vres, const int num_samples)
 {
 	int ix = threadIdx.x + blockIdx.x * blockDim.x;
 	int iy = threadIdx.y + blockIdx.y * blockDim.y;
@@ -110,34 +125,29 @@ __global__ void finish_kernel(uchar4 *dst, float4 *colors, const int hres, const
 }
 
 __global__ void expose_kernel(
-	float4 *colors, const int hres, const int vres, const int num_samples, const float s,
+	float3 *colors, const int hres, const int vres, const int num_samples, const float s,
 	float3 eye, float3 u, float3 v, float3 w, float aperture, float d, world_struct* world, int seed, const int sample_count)
 {
 	Ray ray;
 
-	float2 sp;      // Sample point in [0,1]x[0,1]
-	float2 pp;      // Sample point on a pixel
-	float2 ap;     // Sample point on aperture;
 	
 	int ix = threadIdx.x + blockIdx.x * blockDim.x;
 	int iy = threadIdx.y + blockIdx.y * blockDim.y;
 	int index = ix + iy * hres;
 
 
-	//ap = sample_disk(world->smplr, ix);
-	ap.x = 0;
-	ap.y = 0;
 
 	int depth = 0;
 	//float4 L = rgbcolor(0, 0, 0);
 	for (int j = 0; j < num_samples; j++)
 	{
-		sp = sample_square(world->smplr, seed + index + j );
-		ap = sample_disk(world->smplr, seed + index + j);
+		float2 pp;
+		float2 sp = sample_square(world->smplr, seed + index + j );
 
 		pp.x = s * (ix - 0.5 * hres + sp.x);
 		pp.y = s * (iy - 0.5 * vres + sp.y);
 
+		float3 ap = sample_hemisphere(world->smplr, seed + index + j);
 		ray.o = eye + (aperture * ap.x) * u + (aperture * ap.y) * v;
 		float3 dir = (pp.x - aperture * ap.x) * u + (pp.y - aperture * ap.y) * v - d * w;
 		ray.d = _normalize(dir);
@@ -168,7 +178,7 @@ Camera::~Camera()
 {
 }
 
-void Camera::render(float4* colors, const int width, const int height, const float time) const
+void Camera::render(rgbcol* colors, const int width, const int height, const float time) const
 {
 	dim3 threads(BLOCKDIM_X, BLOCKDIM_Y);
 	dim3 num_blocks = dim3(width / BLOCKDIM_X, height / BLOCKDIM_Y);
@@ -183,7 +193,7 @@ void Camera::render(float4* colors, const int width, const int height, const flo
 
 
 }
-void Camera::expose(float4* colors, const int width, const int height, const int sample_count) const
+void Camera::expose(rgbcol* colors, const int width, const int height, const int sample_count) const
 {
 	dim3 threads(BLOCKDIM_X, BLOCKDIM_Y);
 	dim3 num_blocks = dim3(width / BLOCKDIM_X, height / BLOCKDIM_Y);
@@ -197,7 +207,7 @@ void Camera::expose(float4* colors, const int width, const int height, const int
 
 }
 
-void Camera::finish(uchar4 * frame, float4 * colors, const int w, const int h, const int sample_count) const
+void Camera::finish(uchar4 * frame, rgbcol * colors, const int w, const int h, const int sample_count) const
 {
 	dim3 threads(BLOCKDIM_X, BLOCKDIM_Y);
 	dim3 num_blocks = dim3(w / BLOCKDIM_X, h / BLOCKDIM_Y);

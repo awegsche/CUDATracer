@@ -3,6 +3,7 @@
 #include <vector_types.h>
 #include "render_structs.h"
 #include "MinecraftWorld/MCWorld.h"
+#include "Materials/RGBColors.h"
 
 //
 //extern "C" void render_kernel(
@@ -28,11 +29,11 @@ public:
 	~Camera();
 
 
-	void render(float4* colors, const int w, const int h, const float time) const;
+	void render(rgbcol* colors, const int w, const int h, const float time) const;
 
-	void expose(float4* colors, const int w, const int h, const int sample_count) const;
+	void expose(rgbcol* colors, const int w, const int h, const int sample_count) const;
 
-	void finish(uchar4* frame, float4* colors, const int w, const int h, const int sample_count) const;
+	void finish(uchar4* frame, rgbcol* colors, const int w, const int h, const int sample_count) const;
 
 	void compute_uvw();
 
