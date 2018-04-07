@@ -18,6 +18,10 @@
     CUDA 2.2 SDK - updated with drawing of Julia sets by Konstantin Kolchin, NVIDIA
 */
 
+const int VERSION = 1;
+const int SUBVERSION = 0;
+const int BUILDN = 16;
+
 // OpenGL Graphics includes
 #include <helper_gl.h>
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
@@ -176,7 +180,8 @@ void renderImage()
 
 		float ifps = 1000.f / elapsed;
 		char fps[256];
-		sprintf(fps, "Standard mode | %5.1f fps | %d samples | %6.2f samples/s", ifps, sample_count, ifps * sample_count);
+		sprintf(fps, "CUDATRacer V %d.%d (%04d) - Standard mode | %5.1f fps | %d samples | %6.2f samples/s",
+			VERSION, SUBVERSION, BUILDN, ifps, sample_count, ifps * sample_count);
 		glutSetWindowTitle(fps);
 
 
@@ -190,7 +195,7 @@ void renderImage()
 			camera->expose(film, imageW, imageH, sample_count++);
 			err = cudaDeviceSynchronize();
 
-		} while ((myTimer->getTime() - t0) < 200.0f);
+		} while ((myTimer->getTime() - t0) < 100.0f);
 		camera->finish(d_dst, film, imageW, imageH, sample_count);
 		err = cudaDeviceSynchronize();
 		float elapsed = sdkGetTimerValue(&myTimer) - t0;
@@ -198,7 +203,7 @@ void renderImage()
 		float ifps = 1000.f / elapsed;
 		float time_of_image = sdkGetTimerValue(&myTimer) - start_btime;
 		char fps[256];
-		sprintf(fps, "Beautiful mode | %5.1f fps | %d samples | time: %7.2f s | %6.2f samples/s", ifps, sample_count, time_of_image / 1000.0f, 1000.0f * sample_count / time_of_image);
+		sprintf(fps, "Offline rendering | %5.1f fps | %d samples | time: %7.2f s | %6.2f samples/s", ifps, sample_count, time_of_image / 1000.0f, 1000.0f * sample_count / time_of_image);
 
 		glutSetWindowTitle(fps);
 

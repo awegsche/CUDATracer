@@ -20,7 +20,7 @@ __device__ rgbacol get_color(rgbacol* texels, texture_pos* positions, uint2* dim
 	return texels[index];
 }
 
-__device__ rgbcol shade(ShadeRec &sr, world_struct *world, const int seed, bool &hitt, rgbacol &texel_color) {
+__device__ rgbcol shade(ShadeRec &sr, world_struct *world, const float3 &sp, bool &hitt, rgbacol &texel_color) {
 
 	if (!hitt) return;
 
@@ -44,7 +44,7 @@ __device__ rgbcol shade(ShadeRec &sr, world_struct *world, const int seed, bool 
 	w = sr.normal;
 	v = _normalize(w ^ make_float3(-0.0073f, 1.0f, 0.0034f));
 	u = v ^ w;
-	float3 sp = sample_hemisphere(world->smplr, seed);
+	//float3 sp = sample_hemisphere(world->smplr, seed);
 
 	Ray shadowray;
 	shadowray.o = sr.hitPoint() + kEPSILON * sr.normal;
@@ -52,7 +52,7 @@ __device__ rgbcol shade(ShadeRec &sr, world_struct *world, const int seed, bool 
 	ShadeRec dum;
 	float tshadow = kHUGEVALUE;
 	if (!world_hit(shadowray, tshadow, world, dum))
-		L = L + rgbcolor(texel_color) * material.ka * 1.2f;
+		L = L + rgbcolor(texel_color) * material.ka;
 
 	//L = rgbcolor(sr.u, sr.v, 0.0f);
 
@@ -60,7 +60,7 @@ __device__ rgbcol shade(ShadeRec &sr, world_struct *world, const int seed, bool 
 	
 }
 
-__device__ void shade_shadow(world_struct *world, ShadeRec &sr, int seed, rgbcol &L, rgbacol &texel_color, bool hitt) {
+__device__ void shade_shadow(world_struct *world, ShadeRec &sr, const float3 &sp, rgbcol &L, rgbacol &texel_color, bool hitt) {
 	if (!hitt) return;
 	
 	// ==== sun: ================
@@ -97,7 +97,7 @@ __device__ bool shade_reflection(world_struct *world, ShadeRec &sr, float3 &wo, 
 
 	Ray reflected_ray;
 	reflected_ray.d = wi;
-	reflected_ray.o = sr.hitPoint() + kEPSILON * wi;
+	reflected_ray.o = sr.hitPoint() + kEPSILON * sr.normal;
 
 	L = add_colors(L, scale_color(trace_ray(reflected_ray, world, seed, depth + 1), material.kr / (sr.normal * wi)));
 
