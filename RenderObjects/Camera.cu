@@ -24,7 +24,7 @@ __device__ float3 trace_ray(
 	float t = kHUGEVALUE;
 	ShadeRec sr;
 
-	float sky = clamp(ray.d.y * 2.0f, 0.0f, .8f);
+	float sky = clamp(ray.d.y * 2.1f, 0.0f, .8f);
 	//float3 sky_color = rgbcolor(.8f - sky, .9f - sky, 1.0f - sky * 0.3);
 	//float3 L = rgbcolor(.8f - sky, .9f - sky, 1.0f - sky * 0.3);
 	rgbcol L;
@@ -46,14 +46,13 @@ __device__ float3 trace_ray(
 		L += shade(sr, world, seed, hit, texel_color);
 	}
 	
-	//__syncthreads();
+	__syncthreads();
 	shade_shadow(world, sr, seed, L, texel_color, hit);
-	//__syncthreads();
-	if (depth < 3)
-	{
+	__syncthreads();
+	/* if (depth < 3) {
 		float3 wi;
 		shade_reflection(world, sr, -sr.ray.d, wi, L, seed, depth +1);
-	}
+	}*/
 
 	if (t > world->haze_dist)
 	{
@@ -63,7 +62,7 @@ __device__ float3 trace_ray(
 			factor *= factor;
 		L = add_colors(scale_color(L, factor), scale_color(rgbcolor(.8f - sky, .9f - sky, 1.0f - sky * 0.3), 1.0f - factor));
 	}
-
+	
 	return L;
 		
 }
@@ -110,9 +109,6 @@ render_kernel(
 	}
 	//L = scale_color(L, 1.0f / num_samples);
 	//L *= exposure_time;
-	
-	
-
 }
 
 __global__ void finish_kernel(uchar4 *dst, float3 *colors, const int hres, const int vres, const int num_samples)

@@ -145,7 +145,11 @@ void reset_image(int w, int h) {
 	start_btime = sdkGetTimerValue(&myTimer);
 }
 
-
+void swap_buffers(int w, int h) {
+	cudaMemset(film, 0, sizeof(rgbcol) * w * h);
+	sample_count = 0;
+	start_btime = sdkGetTimerValue(&myTimer);
+}
 
 // render Mandelbrot image using CUDA or CPU
 void renderImage()
@@ -176,17 +180,17 @@ void renderImage()
 		glutSetWindowTitle(fps);
 
 
-		reset_image(imageW, imageH);
+		swap_buffers(imageW, imageH);
 		break;
 	}
 
 	case RENDER_BEAUTIFUL:
 	{
-		while ((sdkGetTimerValue(&myTimer) - t0) < 16.0f) {
-			camera->expose(film, imageW, imageH, sample_count += world->get_num_samples());
+		do {
+			camera->expose(film, imageW, imageH, sample_count++);
 			err = cudaDeviceSynchronize();
 
-		}
+		} while ((myTimer->getTime() - t0) < 200.0f);
 		camera->finish(d_dst, film, imageW, imageH, sample_count);
 		err = cudaDeviceSynchronize();
 		float elapsed = sdkGetTimerValue(&myTimer) - t0;
@@ -204,9 +208,7 @@ void renderImage()
 	case RENDER_APERTURE:
 	{
 		do {
-
-			sample_count += world->get_num_samples();
-			camera->expose(film, imageW, imageH, sample_count += world->get_num_samples());
+			camera->expose(film, imageW, imageH, sample_count++);
 			err = cudaDeviceSynchronize();
 
 		} while ((myTimer->getTime() - t0) < 33.3f);  // 30 fps
@@ -221,7 +223,7 @@ void renderImage()
 		glutSetWindowTitle(fps);
 
 
-		reset_image(imageW, imageH);
+		swap_buffers(imageW, imageH);
 		break;
 	}
 	}
