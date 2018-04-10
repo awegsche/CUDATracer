@@ -89,8 +89,8 @@ render_kernel(
 			float2 pp;      // Sample point on a pixel
 
 			float3 L = rgbcolor(0, 0, 0);
-			float2 sp = sample_square(world->smplr, seed + index);
-			float3 hemisphere_sp = sample_hemisphere(world->smplr, seed + index);
+			float2 sp = sample_square(world->smplr, seed);
+			float3 hemisphere_sp = sample_hemisphere(world->smplr, seed);
 
 			pp.x = s * (ix - 0.5 * hres + sp.x);
 			pp.y = s * (iy - 0.5 * vres + sp.y);
@@ -104,13 +104,14 @@ render_kernel(
 
 }
 
-__global__ void finish_kernel(uchar4 *dst, float3 *colors, const int hres, const int vres, const int num_samples)
+__global__ void finish_kernel(uchar4 *dst, float3 *colors, const int hres, const int vres, const
+        float exposure)
 {
 	int ix = threadIdx.x + blockIdx.x * blockDim.x;
 	int iy = threadIdx.y + blockIdx.y * blockDim.y;
 	int index = ix + iy * hres;
 
-	dst[index] = _rgbcolor_to_byte(scale_color(colors[index], 1.0f / num_samples));
+	dst[index] = _rgbcolor_to_byte(scale_color(colors[index], exposure));
 }
 
 __global__ void expose_kernel(
@@ -126,7 +127,7 @@ __global__ void expose_kernel(
 
 	//float4 L = rgbcolor(0, 0, 0);
 	float2 pp;
-	float3 ap = sample_hemisphere(world->smplr, seed + index);
+	float3 ap = sample_hemisphere(world->smplr, seed);
 
 	pp.x = s * (ix - 0.5 * hres + ap.x);
 	pp.y = s * (iy - 0.5 * vres + ap.y);
@@ -173,7 +174,7 @@ void Camera::expose(rgbcol* colors, const int width, const int height, const int
 
 	expose_kernel << <num_blocks, threads >> > (
 		colors, width, height, zoom,
-		eye, u, v, w, aperture, d, world, rand());
+		eye, u, v, w, aperture, d, world, sample_count);
 
 
 }
@@ -185,7 +186,7 @@ void Camera::finish(uchar4 * frame, rgbcol * colors, const int w, const int h, c
 
 
 
-	finish_kernel << <num_blocks, threads >> > (frame, colors, w, h, sample_count);
+	finish_kernel << <num_blocks, threads >> > (frame, colors, w, h, 1.0f / sample_count);
 
 }
 

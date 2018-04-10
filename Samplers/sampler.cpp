@@ -6,7 +6,7 @@
 
 
 sampler::sampler()
-	: num_sets(83), num_samples(1)
+	: num_sets(16), num_samples(256)
 {
 }
 
